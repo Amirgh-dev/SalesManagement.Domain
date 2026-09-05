@@ -12,7 +12,7 @@
         public bool IsVendor { get; set; }
         public bool IsInBlacklist { get; set; }
         public decimal CustomerRemaining { get; set; }
-        public string? Code { get; set; }
-        public string? Title { get; set; }
+        public string? DlCode { get; set; }
+        public string? DlTitle { get; set; }
     }
 }

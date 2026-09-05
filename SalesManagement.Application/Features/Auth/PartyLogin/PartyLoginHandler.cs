@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SalesManagement.Application.Common.Interfaces;
 using SalesManagement.Domain.Common.Exceptions;
 using SalesManagement.Domain.Features.Auth.PartyLogin;
@@ -27,18 +27,21 @@ namespace SalesManagement.Application.Features.Auth.PartyLogin
             if (string.IsNullOrWhiteSpace(command.Phone) || string.IsNullOrWhiteSpace(command.NationalCode))
                 throw new DomainException("اطلاعات ورود ناقص است");
 
+            var phone = command.Phone.Trim();
+            var nationalCode = command.NationalCode.Trim();
+
             var party = await _partyRepository.GetByPhoneAndNationalCodeAsync(
-                command.Phone.Trim(), command.NationalCode.Trim(), cancellationToken);
+                phone, nationalCode, cancellationToken);
 
             if (party is null)
             {
-                _logger.LogWarning("تلاش ورود ناموفق برای شماره: {Phone}", command.Phone);
-                throw new DomainException("شماره تماس یا کد ملی اشتباه است");
+                _logger.LogWarning("تلاش ورود ناموفق برای شماره: {Phone}", Mask(phone));
+                throw new AuthenticationException("شماره تماس یا کد ملی اشتباه است");
             }
 
             party.EnsureCanLogin();
 
-            var accessToken = _tokenGenerator.GenerateAccessToken(party.PartyId, command.Phone);
+            var accessToken = _tokenGenerator.GenerateAccessToken(party.PartyId, phone);
 
             _logger.LogInformation("ورود موفق Party: {PartyId}", party.PartyId);
 
@@ -46,5 +49,9 @@ namespace SalesManagement.Application.Features.Auth.PartyLogin
                 accessToken, _tokenGenerator.AccessTokenExpirationSeconds,
                 party.PartyId, party.FullName);
         }
+
+        /// <summary>نمایش پوشیده‌ی شماره در لاگ‌ها؛ فقط چهار رقم آخر باقی می‌ماند.</summary>
+        private static string Mask(string phone) =>
+            phone.Length <= 4 ? "****" : string.Concat(new string('*', phone.Length - 4), phone.AsSpan(phone.Length - 4));
     }
 }

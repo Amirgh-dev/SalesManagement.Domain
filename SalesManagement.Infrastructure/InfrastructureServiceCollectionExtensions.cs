@@ -5,7 +5,7 @@ using SalesManagement.Infrastructure.Security;
 
 namespace SalesManagement.Infrastructure
 {
-    public static class DependencyInjection
+    public static class InfrastructureServiceCollectionExtensions
     {
         public static IServiceCollection AddInfrastructure(
             this IServiceCollection services, IConfiguration configuration)

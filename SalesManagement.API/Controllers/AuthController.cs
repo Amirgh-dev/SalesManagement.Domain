@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using SalesManagement.API.Common;
 using SalesManagement.API.Features.Auth.PartyLogin;
 using SalesManagement.Application.Features.Auth.PartyLogin;
 
@@ -18,8 +20,11 @@ namespace SalesManagement.API.Controllers
 
         [HttpPost("tokens")]
         [AllowAnonymous]
+        [EnableRateLimiting(ApiServiceCollectionExtensions.AuthRateLimiterPolicy)]
         [ProducesResponseType(typeof(PartyLoginResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public async Task<ActionResult<PartyLoginResponse>> PartyLogin(
             [FromBody] PartyLoginRequest request, CancellationToken cancellationToken)
         {

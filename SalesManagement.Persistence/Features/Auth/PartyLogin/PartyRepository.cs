@@ -18,9 +18,25 @@ namespace SalesManagement.Persistence.Features.Auth.PartyLogin
             string phone, string nationalCode, CancellationToken cancellationToken = default)
         {
             const string sql = """
-                                   SELECT GNR.Party.PartyId, GNR.Party.Name, GNR.Party.LastName, GNR.Party.IdentificationCode, GNR.Party.Email, GNR.Party.IsCustomer, GNR.Party.IsEmployee, GNR.Party.IsVendor, GNR.Party.IsInBlacklist, GNR.Party.CustomerRemaining, ACC.DL.Code, ACC.DL.Title
-                                   FROM GNR.Party INNER JOIN ACC.DL ON ACC.DL.DLId = GNR.Party.DLRef INNER JOIN GNR.PartyPhone ON GNR.Party.PartyId = GNR.PartyPhone.PartyRef
-                                   WHERE GNR.PartyPhone.Type = 2 AND GNR.PartyPhone.Phone = @Phone AND GNR.Party.IdentificationCode = @NationalCode
+                                   SELECT DISTINCT
+                                       GNR.Party.PartyId,
+                                       GNR.Party.Name,
+                                       GNR.Party.LastName,
+                                       GNR.Party.IdentificationCode,
+                                       GNR.Party.Email,
+                                       GNR.Party.IsCustomer,
+                                       GNR.Party.IsEmployee,
+                                       GNR.Party.IsVendor,
+                                       GNR.Party.IsInBlacklist,
+                                       GNR.Party.CustomerRemaining,
+                                       ACC.DL.Code  AS DlCode,
+                                       ACC.DL.Title AS DlTitle
+                                   FROM GNR.Party
+                                       INNER JOIN ACC.DL ON ACC.DL.DLId = GNR.Party.DLRef
+                                       INNER JOIN GNR.PartyPhone ON GNR.Party.PartyId = GNR.PartyPhone.PartyRef
+                                   WHERE GNR.PartyPhone.Type = 2
+                                       AND GNR.PartyPhone.Phone = @Phone
+                                       AND GNR.Party.IdentificationCode = @NationalCode
                                """;
 
             using var connection = _connectionFactory.CreateConnection();
@@ -47,8 +63,8 @@ namespace SalesManagement.Persistence.Features.Auth.PartyLogin
                 isVendor: dto.IsVendor,
                 isInBlacklist: dto.IsInBlacklist,
                 customerRemaining: dto.CustomerRemaining,
-                dlCode: dto.Code,
-                dlTitle: dto.Title);
+                dlCode: dto.DlCode,
+                dlTitle: dto.DlTitle);
         }
     }
 }

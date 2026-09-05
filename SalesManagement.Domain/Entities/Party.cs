@@ -50,7 +50,7 @@ namespace SalesManagement.Domain.Entities
         public void EnsureCanLogin()
         {
             if (IsInBlacklist)
-                throw new DomainException("دسترسی این کاربر مسدود شده است");
+                throw new ForbiddenException("دسترسی این کاربر مسدود شده است");
         }
 
         public string FullName => $"{Name} {LastName}".Trim();

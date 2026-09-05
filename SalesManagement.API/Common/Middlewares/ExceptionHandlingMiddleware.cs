@@ -1,4 +1,5 @@
-﻿using System.Net;
+using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using SalesManagement.Domain.Common.Exceptions;
 
 namespace SalesManagement.API.Common.Middlewares
@@ -20,22 +21,39 @@ namespace SalesManagement.API.Common.Middlewares
             {
                 await _next(context);
             }
+            catch (AuthenticationException ex)
+            {
+                await WriteProblem(context, HttpStatusCode.Unauthorized, "خطای احراز هویت", ex.Message);
+            }
+            catch (ForbiddenException ex)
+            {
+                await WriteProblem(context, HttpStatusCode.Forbidden, "دسترسی غیرمجاز", ex.Message);
+            }
             catch (DomainException ex)
             {
-                await WriteResponse(context, HttpStatusCode.BadRequest, new { error = ex.Message });
+                await WriteProblem(context, HttpStatusCode.BadRequest, "درخواست نامعتبر", ex.Message);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "خطای غیرمنتظره در {Path}", context.Request.Path);
-                await WriteResponse(context, HttpStatusCode.InternalServerError, new { error = "خطای داخلی سرور" });
+                await WriteProblem(context, HttpStatusCode.InternalServerError, "خطای داخلی سرور", "خطای داخلی سرور");
             }
         }
 
-        private static async Task WriteResponse(HttpContext context, HttpStatusCode statusCode, object payload)
+        private static Task WriteProblem(
+            HttpContext context, HttpStatusCode statusCode, string title, string detail)
         {
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)statusCode;
-            await context.Response.WriteAsJsonAsync(payload);
+            var problem = new ProblemDetails
+            {
+                Status = (int)statusCode,
+                Title = title,
+                Detail = detail,
+                Instance = context.Request.Path
+            };
+
+            context.Response.StatusCode = problem.Status.Value;
+            context.Response.ContentType = "application/problem+json";
+            return context.Response.WriteAsJsonAsync(problem);
         }
     }
 }
