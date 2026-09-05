@@ -2,7 +2,7 @@
 {
     public interface ITokenGenerator
     {
+        int AccessTokenExpirationSeconds { get; }
         string GenerateAccessToken(int partyId, string phone);
-        string GenerateRefreshToken();
     }
 }

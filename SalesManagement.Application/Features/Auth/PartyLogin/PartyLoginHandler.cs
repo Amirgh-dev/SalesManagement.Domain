@@ -39,12 +39,11 @@ namespace SalesManagement.Application.Features.Auth.PartyLogin
             party.EnsureCanLogin();
 
             var accessToken = _tokenGenerator.GenerateAccessToken(party.PartyId, command.Phone);
-            var refreshToken = _tokenGenerator.GenerateRefreshToken();
 
             _logger.LogInformation("ورود موفق Party: {PartyId}", party.PartyId);
 
             return new PartyLoginResult(
-                accessToken, refreshToken, ExpiresInSeconds: 3600,
+                accessToken, _tokenGenerator.AccessTokenExpirationSeconds,
                 party.PartyId, party.FullName);
         }
     }

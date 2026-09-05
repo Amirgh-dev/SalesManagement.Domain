@@ -1,7 +1,13 @@
 ﻿using SalesManagement.Domain.Common.Exceptions;
 
-namespace SalesManagement.Domain.Features.Auth.PartyLogin
+namespace SalesManagement.Domain.Entities
 {
+    /// <summary>
+    /// نماینده‌ی یک طرف‌حساب. DLCode/DLTitle چون رابطه‌ی چندبه‌یک (هر Party فقط یک DL دارد)
+    /// امن است که مستقیم اینجا نگه‌داری شود. اما Phone عمداً اینجا نیست چون یک Party
+    /// می‌تواند چند شماره تماس داشته باشد (رابطه یک‌به‌چند در PartyPhone)،
+    /// و Flatten کردنش رو Entity باعث از دست رفتن داده می‌شود.
+    /// </summary>
     public class Party
     {
         public int PartyId { get; private set; }
@@ -9,7 +15,6 @@ namespace SalesManagement.Domain.Features.Auth.PartyLogin
         public string LastName { get; private set; } = string.Empty;
         public string IdentificationCode { get; private set; } = string.Empty;
         public string? Email { get; private set; }
-        public string Phone { get; private set; } = string.Empty;
         public bool IsCustomer { get; private set; }
         public bool IsEmployee { get; private set; }
         public bool IsVendor { get; private set; }
@@ -22,7 +27,7 @@ namespace SalesManagement.Domain.Features.Auth.PartyLogin
 
         public static Party Reconstitute(
             int partyId, string name, string lastName, string identificationCode,
-            string? email, string phone, bool isCustomer, bool isEmployee, bool isVendor,
+            string? email, bool isCustomer, bool isEmployee, bool isVendor,
             bool isInBlacklist, decimal customerRemaining, string? dlCode, string? dlTitle)
         {
             return new Party
@@ -32,7 +37,6 @@ namespace SalesManagement.Domain.Features.Auth.PartyLogin
                 LastName = lastName,
                 IdentificationCode = identificationCode,
                 Email = email,
-                Phone = phone,
                 IsCustomer = isCustomer,
                 IsEmployee = isEmployee,
                 IsVendor = isVendor,

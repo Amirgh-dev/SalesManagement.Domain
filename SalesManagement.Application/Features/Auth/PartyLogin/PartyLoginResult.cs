@@ -2,7 +2,6 @@
 {
     public record PartyLoginResult(
         string AccessToken,
-        string RefreshToken,
         int ExpiresInSeconds,
         int PartyId,
         string FullName);
