@@ -29,6 +29,10 @@ namespace SalesManagement.API.Common.Middlewares
             {
                 await WriteProblem(context, HttpStatusCode.Forbidden, "دسترسی غیرمجاز", ex.Message);
             }
+            catch (NotFoundException ex)
+            {
+                await WriteProblem(context, HttpStatusCode.NotFound, "پیدا نشد", ex.Message);
+            }
             catch (DomainException ex)
             {
                 await WriteProblem(context, HttpStatusCode.BadRequest, "درخواست نامعتبر", ex.Message);

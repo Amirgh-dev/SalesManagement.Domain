@@ -41,5 +41,6 @@
   "DatabaseName": "1",
   "DatabaseUsername": "1",
   "DatabasePassword": "1",
-  "DatabasePort": ""
+  "DatabasePort": "",
+  "ItemSaleGroupEntityType": "SG.Inventory.ItemManagement.Common.ItemSaleGroup"
 }

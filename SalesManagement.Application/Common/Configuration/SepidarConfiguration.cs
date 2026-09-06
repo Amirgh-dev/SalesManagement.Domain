@@ -3,7 +3,6 @@ namespace SalesManagement.Application.Common.Configuration
     /// <summary>
     /// مقادیر پیش‌فرض یکپارچه‌سازی با سپیدار که از فایل
     /// <c>wwwroot/configuration/SepidarConfiguration.json</c> خوانده می‌شود.
-    /// معادل تمیزشده‌ی کلاس قدیمی <c>Integration.Extensions.SepidarConfiguration.Configuration</c>.
     /// </summary>
     public class SepidarConfiguration
     {
@@ -52,5 +51,8 @@ namespace SalesManagement.Application.Common.Configuration
         public string? DatabasePassword { get; set; }
         public string? DatabasePort { get; set; }
         public int? DefaultSaleTypeRefWarranty { get; set; }
+
+        /// <summary>EntityType گروه‌بندی فروش کالا در GNR.Grouping (برای فهرست دسته‌ها).</summary>
+        public string? ItemSaleGroupEntityType { get; set; }
     }
 }

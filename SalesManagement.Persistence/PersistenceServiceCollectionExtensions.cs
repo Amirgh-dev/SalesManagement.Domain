@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SalesManagement.Application.Common.Interfaces;
-using SalesManagement.Application.Features.Items.GetItems;
 using SalesManagement.Domain.Features.Auth.PartyLogin;
+using SalesManagement.Domain.Features.Items;
 using SalesManagement.Persistence.ConnectionFactories;
 using SalesManagement.Persistence.Features.Auth.PartyLogin;
+using SalesManagement.Persistence.Features.Items.GetCategories;
 using SalesManagement.Persistence.Features.Items.GetItems;
 
 namespace SalesManagement.Persistence
@@ -20,7 +21,8 @@ namespace SalesManagement.Persistence
 
             // Register repositories
             services.AddScoped<IPartyRepository, PartyRepository>();
-            services.AddScoped<IItemReadRepository, ItemReadRepository>();
+            services.AddScoped<IItemRepository, ItemRepository>();
+            services.AddScoped<ICategoryRepository, CategoryRepository>();
 
             return services;
         }
