@@ -1,6 +1,7 @@
 using SalesManagement.API.Common;
 using SalesManagement.API.Common.Middlewares;
 using SalesManagement.Application.Features.Auth.PartyLogin;
+using SalesManagement.Application.Features.Items.GetItems;
 using SalesManagement.Infrastructure;
 using SalesManagement.Persistence;
 
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<PartyLoginHandler>();
+builder.Services.AddScoped<GetItemsHandler>();
 builder.Services.AddApiServices(builder.Configuration);
 
 var app = builder.Build();

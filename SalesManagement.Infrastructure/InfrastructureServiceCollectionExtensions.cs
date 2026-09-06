@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SalesManagement.Application.Common.Interfaces;
+using SalesManagement.Infrastructure.Configuration;
 using SalesManagement.Infrastructure.Security;
 
 namespace SalesManagement.Infrastructure
@@ -12,6 +13,8 @@ namespace SalesManagement.Infrastructure
         {
             services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
             services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
+
+            services.AddSingleton<ISepidarConfigurationProvider, SepidarConfigurationProvider>();
 
             return services;
         }
