@@ -13,6 +13,8 @@ using SalesManagement.Domain.Features.Customers;
 using SalesManagement.Persistence.Features.Customers.CreateCustomer;
 using SalesManagement.Domain.Features.Locations;
 using SalesManagement.Persistence.Features.Locations.GetLocations;
+using SalesManagement.Domain.Features.Invoices;
+using SalesManagement.Persistence.Features.Invoices.GetVendorInvoices;
 
 namespace SalesManagement.Persistence
 {
@@ -32,6 +34,7 @@ namespace SalesManagement.Persistence
             services.AddScoped<IQuotationRepository, QuotationRepository>();
             services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddScoped<ILocationRepository, LocationRepository>();
+            services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 
 
             return services;

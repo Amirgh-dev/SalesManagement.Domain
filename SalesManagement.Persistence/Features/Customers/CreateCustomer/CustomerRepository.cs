@@ -192,7 +192,7 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                     pFile.Add("@FileName", c.LicenseFileName);
                     pFile.Add("@FileExtensions", Path.GetExtension(c.LicenseFileName));
                     pFile.Add("@IsOk", 1);
-                    pFile.Add("@IsMain", 1);
+                    pFile.Add("@IsMain", 0);
                     pFile.Add("@Tables", "Party");
                     await hesab.ExecuteAsync(SqlInsertPartyFile, pFile, txHesab);
                 }
