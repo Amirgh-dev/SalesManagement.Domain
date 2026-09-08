@@ -28,11 +28,9 @@ namespace SalesManagement.Application.Features.Items.GetItemsByCategory
             if (string.IsNullOrWhiteSpace(query.CategoryCode))
                 throw new DomainException("کدِ دسته الزامی است");
 
-            var saleTypeRef = _configurationProvider.Get().DefaultSaleTypeRef;
-            if (saleTypeRef <= 0)
-                saleTypeRef = 1;
+            var saleTypeRef = _configurationProvider.ResolveSaleTypeRef();
 
-            var items = await _itemRepository.GetByCategoryCodeAsync(
+            var items = await _itemRepository.GetCatalogByCategoryAsync(
                 query.CategoryCode.Trim(), saleTypeRef, cancellationToken);
 
             _logger.LogInformation(

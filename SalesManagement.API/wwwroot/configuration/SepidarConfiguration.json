@@ -42,5 +42,8 @@
   "DatabaseUsername": "1",
   "DatabasePassword": "1",
   "DatabasePort": "",
-  "ItemSaleGroupEntityType": "SG.Inventory.ItemManagement.Common.ItemSaleGroup"
+  "ItemSaleGroupEntityType": "SG.Inventory.ItemManagement.Common.ItemSaleGroup",
+  "DefaultLocationRef": "10",
+  "LocationProvinceType": "2",
+  "LocationCountyType": "3"
 }

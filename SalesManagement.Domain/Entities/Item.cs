@@ -2,10 +2,6 @@ using SalesManagement.Domain.ValueObjects;
 
 namespace SalesManagement.Domain.Entities
 {
-    /// <summary>
-    /// ریشه‌ی Aggregate کالا: مشخصات پایه به‌همراه گروه فروش، ویژگی‌ها،
-    /// خلاصه‌ی موجودی انبارهای فعال و قیمت‌های فروش (برای نوع فروشِ پرس‌وجوشده).
-    /// </summary>
     public class Item
     {
         private readonly List<ItemStockSummary> _stockSummaries = new();
@@ -25,11 +21,7 @@ namespace SalesManagement.Domain.Entities
 
         public IReadOnlyList<ItemStockSummary> StockSummaries => _stockSummaries;
         public IReadOnlyList<ItemPrice> Prices => _prices;
-
-        /// <summary>جمع موجودی همه‌ی انبارهای فعال.</summary>
         public decimal TotalQuantity => _stockSummaries.Sum(s => s.Quantity);
-
-        /// <summary>آیا کالا برای فروش در دسترس است (فعال، قابل‌فروش و موجودی مثبت).</summary>
         public bool IsAvailableForSale => IsActive && Sellable && TotalQuantity > 0;
 
         private Item() { }

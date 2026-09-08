@@ -23,11 +23,9 @@ namespace SalesManagement.Application.Features.Items.GetItems
         public async Task<GetItemsResult> Handle(
             GetItemsQuery query, CancellationToken cancellationToken = default)
         {
-            var saleTypeRef = _configurationProvider.Get().DefaultSaleTypeRef;
-            if (saleTypeRef <= 0)
-                saleTypeRef = 1;
+            var saleTypeRef = _configurationProvider.ResolveSaleTypeRef();
 
-            var items = await _itemRepository.GetAllAsync(saleTypeRef, cancellationToken);
+            var items = await _itemRepository.GetCatalogAsync(saleTypeRef, cancellationToken);
 
             _logger.LogInformation(
                 "فهرست کالاها خوانده شد: {Count} کالا (SaleTypeRef={SaleTypeRef})",

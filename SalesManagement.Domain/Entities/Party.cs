@@ -2,12 +2,6 @@
 
 namespace SalesManagement.Domain.Entities
 {
-    /// <summary>
-    /// نماینده‌ی یک طرف‌حساب. DLCode/DLTitle چون رابطه‌ی چندبه‌یک (هر Party فقط یک DL دارد)
-    /// امن است که مستقیم اینجا نگه‌داری شود. اما Phone عمداً اینجا نیست چون یک Party
-    /// می‌تواند چند شماره تماس داشته باشد (رابطه یک‌به‌چند در PartyPhone)،
-    /// و Flatten کردنش رو Entity باعث از دست رفتن داده می‌شود.
-    /// </summary>
     public class Party
     {
         public int PartyId { get; private set; }

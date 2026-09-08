@@ -5,10 +5,6 @@ using SalesManagement.Application.Common.Interfaces;
 
 namespace SalesManagement.Infrastructure.Configuration
 {
-    /// <summary>
-    /// مقادیر پیش‌فرض سپیدار را از فایل JSON کنار خروجی برنامه می‌خواند
-    /// (<c>wwwroot/configuration/SepidarConfiguration.json</c>) و یک‌بار کش می‌کند.
-    /// </summary>
     public class SepidarConfigurationProvider : ISepidarConfigurationProvider
     {
         private const string RelativePath = "wwwroot/configuration/SepidarConfiguration.json";

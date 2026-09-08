@@ -5,6 +5,12 @@ using SalesManagement.Application.Features.Items.GetCategories;
 using SalesManagement.Application.Features.Items.GetItemById;
 using SalesManagement.Application.Features.Items.GetItems;
 using SalesManagement.Application.Features.Items.GetItemsByCategory;
+using SalesManagement.Application.Features.Quotations.GetVendorQuotations;
+using SalesManagement.Application.Features.Quotations.GetVendorQuotationById;
+using SalesManagement.Application.Features.Quotations.GetCustomerQuotations;
+using SalesManagement.Application.Common.Interfaces;
+using SalesManagement.Application.Features.Customers.CreateCustomer;
+using SalesManagement.Application.Features.Locations.GetLocations;
 using SalesManagement.Infrastructure;
 using SalesManagement.Persistence;
 
@@ -17,9 +23,17 @@ builder.Services.AddScoped<GetItemsHandler>();
 builder.Services.AddScoped<GetItemByIdHandler>();
 builder.Services.AddScoped<GetCategoriesHandler>();
 builder.Services.AddScoped<GetItemsByCategoryHandler>();
+builder.Services.AddScoped<GetVendorQuotationsHandler>();
+builder.Services.AddScoped<GetVendorQuotationByIdHandler>();
+builder.Services.AddScoped<GetCustomerQuotationsHandler>();
+builder.Services.AddScoped<CreateCustomerHandler>();
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+builder.Services.AddScoped<GetLocationsHandler>();
 builder.Services.AddApiServices(builder.Configuration);
 
 var app = builder.Build();
+
+app.UseResponseCompression();
 
 if (app.Environment.IsDevelopment())
 {

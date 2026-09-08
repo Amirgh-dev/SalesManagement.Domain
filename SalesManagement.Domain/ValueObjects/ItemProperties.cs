@@ -1,8 +1,5 @@
 namespace SalesManagement.Domain.ValueObjects
 {
-    /// <summary>
-    /// ویژگی‌های فنی کالا از جدول INV.ItemPropertyAmount (هر کالا حداکثر یک ردیف).
-    /// </summary>
     public sealed record ItemProperties(
         int ItemPropertyAmountId,
         string? BodyMaterial,     // جنس بدنه

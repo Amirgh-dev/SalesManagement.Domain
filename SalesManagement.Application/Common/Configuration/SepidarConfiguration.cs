@@ -1,9 +1,5 @@
 namespace SalesManagement.Application.Common.Configuration
 {
-    /// <summary>
-    /// مقادیر پیش‌فرض یکپارچه‌سازی با سپیدار که از فایل
-    /// <c>wwwroot/configuration/SepidarConfiguration.json</c> خوانده می‌شود.
-    /// </summary>
     public class SepidarConfiguration
     {
         public int DefaultFiscalYearsRef { get; set; }
@@ -51,8 +47,9 @@ namespace SalesManagement.Application.Common.Configuration
         public string? DatabasePassword { get; set; }
         public string? DatabasePort { get; set; }
         public int? DefaultSaleTypeRefWarranty { get; set; }
-
-        /// <summary>EntityType گروه‌بندی فروش کالا در GNR.Grouping (برای فهرست دسته‌ها).</summary>
         public string? ItemSaleGroupEntityType { get; set; }
+        public int DefaultLocationRef { get; set; }
+        public int LocationProvinceType { get; set; }
+        public int LocationCountyType { get; set; }
     }
 }

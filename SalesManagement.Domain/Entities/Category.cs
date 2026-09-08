@@ -1,8 +1,5 @@
 namespace SalesManagement.Domain.Entities
 {
-    /// <summary>
-    /// دسته‌بندی (گروه فروش) کالا از جدول GNR.Grouping.
-    /// </summary>
     public class Category
     {
         public int Id { get; private set; }
@@ -11,7 +8,6 @@ namespace SalesManagement.Domain.Entities
         public int? ParentGroupRef { get; private set; }
         public string? EntityType { get; private set; }
 
-        /// <summary>دسته‌ی سطح اول (کدِ تک‌رقمی) در برابر زیرگروه.</summary>
         public bool IsTopLevel => Code is { Length: 1 };
 
         private Category() { }

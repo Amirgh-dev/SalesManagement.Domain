@@ -1,9 +1,5 @@
 namespace SalesManagement.Domain.Entities
 {
-    /// <summary>
-    /// خلاصه‌ی موجودی یک کالا در یک انبار برای یک سال مالی.
-    /// موجودیت فرزندِ <see cref="Item"/> (شناسه‌ی مستقل دارد).
-    /// </summary>
     public class ItemStockSummary
     {
         public int ItemStockSummaryId { get; private set; }

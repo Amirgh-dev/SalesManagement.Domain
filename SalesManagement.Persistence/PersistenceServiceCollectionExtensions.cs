@@ -7,6 +7,12 @@ using SalesManagement.Persistence.ConnectionFactories;
 using SalesManagement.Persistence.Features.Auth.PartyLogin;
 using SalesManagement.Persistence.Features.Items.GetCategories;
 using SalesManagement.Persistence.Features.Items.GetItems;
+using SalesManagement.Domain.Features.Quotations;
+using SalesManagement.Persistence.Features.Quotations.GetVendorQuotations;
+using SalesManagement.Domain.Features.Customers;
+using SalesManagement.Persistence.Features.Customers.CreateCustomer;
+using SalesManagement.Domain.Features.Locations;
+using SalesManagement.Persistence.Features.Locations.GetLocations;
 
 namespace SalesManagement.Persistence
 {
@@ -23,6 +29,10 @@ namespace SalesManagement.Persistence
             services.AddScoped<IPartyRepository, PartyRepository>();
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<IQuotationRepository, QuotationRepository>();
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<ILocationRepository, LocationRepository>();
+
 
             return services;
         }

@@ -50,7 +50,6 @@ namespace SalesManagement.Application.Features.Auth.PartyLogin
                 party.PartyId, party.FullName);
         }
 
-        /// <summary>نمایش پوشیده‌ی شماره در لاگ‌ها؛ فقط چهار رقم آخر باقی می‌ماند.</summary>
         private static string Mask(string phone) =>
             phone.Length <= 4 ? "****" : string.Concat(new string('*', phone.Length - 4), phone.AsSpan(phone.Length - 4));
     }

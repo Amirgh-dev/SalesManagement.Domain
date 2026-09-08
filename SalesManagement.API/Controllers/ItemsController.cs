@@ -42,10 +42,10 @@ namespace SalesManagement.API.Controllers
         }
 
         [HttpPost("{id:int}")]
-        [ProducesResponseType(typeof(ItemListItem), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ItemDetail), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ItemListItem>> GetItemById(int id, CancellationToken cancellationToken)
+        public async Task<ActionResult<ItemDetail>> GetItemById(int id, CancellationToken cancellationToken)
         {
             var result = await _getItemByIdHandler.Handle(new GetItemByIdQuery(id), cancellationToken);
             return Ok(result);
