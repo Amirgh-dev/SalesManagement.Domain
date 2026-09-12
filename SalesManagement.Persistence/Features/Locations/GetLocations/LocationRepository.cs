@@ -1,6 +1,5 @@
+using SalesManagement.Persistence.ConnectionFactories;
 using Dapper;
-using SalesManagement.Application.Common.Interfaces;
-using SalesManagement.Domain.Entities;
 using SalesManagement.Domain.Features.Locations;
 using SalesManagement.Persistence.Features.Locations.GetLocations.Dtos;
 

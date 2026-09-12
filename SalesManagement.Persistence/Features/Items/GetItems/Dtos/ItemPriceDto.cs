@@ -1,6 +1,5 @@
 namespace SalesManagement.Persistence.Features.Items.GetItems.Dtos
 {
-    /// <summary>ردیف خام کوئری قیمت فروش (SLS.PriceNoteItem).</summary>
     public class ItemPriceDto
     {
         public int PriceNoteItemId { get; set; }

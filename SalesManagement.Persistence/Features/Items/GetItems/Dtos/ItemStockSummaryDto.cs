@@ -1,6 +1,5 @@
 namespace SalesManagement.Persistence.Features.Items.GetItems.Dtos
 {
-    /// <summary>ردیف خام کوئری خلاصه‌ی موجودی (INV.ItemStockSummary + INV.Stock).</summary>
     public class ItemStockSummaryDto
     {
         public int ItemStockSummaryId { get; set; }

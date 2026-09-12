@@ -1,6 +1,5 @@
 namespace SalesManagement.Persistence.Features.Items.GetItems.Dtos
 {
-    /// <summary>ردیف خامِ کوئری تختِ کاتالوگ (یک ردیف به‌ازای هر کالا).</summary>
     public class CatalogItemDto
     {
         public int Id { get; set; }

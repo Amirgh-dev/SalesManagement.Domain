@@ -19,6 +19,7 @@ namespace SalesManagement.Domain.Features.Customers
         public decimal Longitude { get; }
         public NewCustomerExtra Extra { get; }
         public string? LicenseFileName { get; private init; }
+        public string? ProfileFileName { get; private init; }
 
         private NewCustomer(string firstName, string lastName, string nationalCode,
             string landline, string mobile, string messenger, string address, string zipCode,
@@ -63,6 +64,8 @@ namespace SalesManagement.Domain.Features.Customers
 
         public NewCustomer WithLicenseFile(string? fileName) => this with { LicenseFileName = fileName };
 
+        public NewCustomer WithProfileFile(string? fileName) => this with { ProfileFileName = fileName };
+
         private static (decimal Lat, decimal Lng) ParseGeolocation(string? value)
         {
             var raw = string.IsNullOrWhiteSpace(value) ? "0,0" : value.Trim();
@@ -81,5 +84,6 @@ namespace SalesManagement.Domain.Features.Customers
         string? HistoryElectricalActivity,
         string? ShopOperationalHistory,
         TypeOwnership? TypeOwnership,
-        AreaSpecialization? AreaSpecialization);
+        AreaSpecialization? AreaSpecialization,
+        string? StoreName);
 }

@@ -1,6 +1,5 @@
 namespace SalesManagement.Persistence.Features.Items.GetCategories.Dtos
 {
-    /// <summary>ردیف خام کوئری دسته‌ها (GNR.Grouping).</summary>
     public class CategoryDto
     {
         public int GroupingId { get; set; }

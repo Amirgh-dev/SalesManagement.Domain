@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using SalesManagement.Application.Common.Interfaces;
-using SalesManagement.Domain.Entities;
 using SalesManagement.Domain.Features.Locations;
 
 namespace SalesManagement.Application.Features.Locations.GetLocations
@@ -10,26 +9,28 @@ namespace SalesManagement.Application.Features.Locations.GetLocations
         ISepidarConfigurationProvider configurationProvider,
         ILogger<GetLocationsHandler> logger)
     {
-        public async Task<GetLocationsResult> GetProvincesAsync(CancellationToken cancellationToken = default)
+        public async Task<GetLocationsResult> Handle(
+            GetLocationsQuery query, CancellationToken cancellationToken = default)
         {
-            var type = configurationProvider.Get().LocationProvinceType;
-            var locations = await locationRepository.GetByTypeAsync(type, cancellationToken);
+            var config = configurationProvider.Get();
 
-            logger.LogInformation("فهرست استان‌ها خوانده شد: {Count}", locations.Count);
+            if (query.ProvinceId is { } provinceId)
+            {
+                var counties = await locationRepository.GetAsync(
+                    config.LocationCountyType, provinceId, cancellationToken);
 
-            return Map(locations);
-        }
+                logger.LogInformation(
+                    "فهرست شهرستان‌های استان {ProvinceId} خوانده شد: {Count}", provinceId, counties.Count);
 
-        public async Task<GetLocationsResult> GetCountiesAsync(
-            int provinceId, CancellationToken cancellationToken = default)
-        {
-            var type = configurationProvider.Get().LocationCountyType;
-            var locations = await locationRepository.GetAsync(type, provinceId, cancellationToken);
+                return Map(counties);
+            }
 
-            logger.LogInformation(
-                "فهرست شهرستان‌های استان {ProvinceId} خوانده شد: {Count}", provinceId, locations.Count);
+            var provinces = await locationRepository.GetByTypeAsync(
+                config.LocationProvinceType, cancellationToken);
 
-            return Map(locations);
+            logger.LogInformation("فهرست استان‌ها خوانده شد: {Count}", provinces.Count);
+
+            return Map(provinces);
         }
 
         private static GetLocationsResult Map(IReadOnlyList<Location> locations) =>

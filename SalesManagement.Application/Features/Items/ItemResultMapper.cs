@@ -1,7 +1,6 @@
 using SalesManagement.Application.Features.Items.GetItemById;
 using SalesManagement.Application.Features.Items.GetItems;
-using SalesManagement.Domain.Entities;
-using SalesManagement.Domain.ValueObjects;
+using SalesManagement.Domain.Features.Items;
 
 namespace SalesManagement.Application.Features.Items
 {
@@ -19,7 +18,7 @@ namespace SalesManagement.Application.Features.Items
             item.TotalQuantity,
             item.MainPrice);
 
-        public static ItemDetail ToDetail(Item item) => new(
+        public static GetItemByIdResult ToDetail(Item item) => new(
             item.Id,
             item.Type,
             item.Code,

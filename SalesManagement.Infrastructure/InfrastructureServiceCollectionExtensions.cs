@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SalesManagement.Application.Common.Interfaces;
 using SalesManagement.Infrastructure.Configuration;
 using SalesManagement.Infrastructure.Security;
+using SalesManagement.Infrastructure.Storage;
 
 namespace SalesManagement.Infrastructure
 {
@@ -15,6 +16,8 @@ namespace SalesManagement.Infrastructure
             services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
 
             services.AddSingleton<ISepidarConfigurationProvider, SepidarConfigurationProvider>();
+
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
 
             return services;
         }

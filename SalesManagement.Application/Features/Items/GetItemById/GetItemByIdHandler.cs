@@ -21,7 +21,7 @@ namespace SalesManagement.Application.Features.Items.GetItemById
             _logger = logger;
         }
 
-        public async Task<ItemDetail> Handle(
+        public async Task<GetItemByIdResult> Handle(
             GetItemByIdQuery query, CancellationToken cancellationToken = default)
         {
             if (query.ItemId <= 0)

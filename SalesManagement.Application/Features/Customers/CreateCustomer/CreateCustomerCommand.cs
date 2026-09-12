@@ -20,6 +20,9 @@ namespace SalesManagement.Application.Features.Customers.CreateCustomer
         string? ShopOperationalHistory,
         TypeOwnership? TypeOwnership,
         AreaSpecialization? AreaSpecialization,
+        string? StoreName,
         Stream? LicenseImageContent,
-        string? LicenseImageExtension);
+        string? LicenseImageExtension,
+        Stream? ProfileImageContent,
+        string? ProfileImageExtension);
 }

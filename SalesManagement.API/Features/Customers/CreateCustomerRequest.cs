@@ -25,7 +25,9 @@ namespace SalesManagement.API.Features.Customers
         public string? ShopOperationalHistory { get; init; }
         public TypeOwnership? TypeOwnership { get; init; }
         public AreaSpecialization? AreaSpecialization { get; init; }
+        public string? StoreName { get; init; }
 
-        public IFormFile? LicenseImage { get; init; } 
+        public IFormFile? LicenseImage { get; init; }
+        public IFormFile? ProfileImage { get; init; }
     }
 }

@@ -1,72 +1,52 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesManagement.API.Common;
-using SalesManagement.Application.Features.Quotations.GetCustomerQuotations;
-using SalesManagement.Application.Features.Quotations.GetVendorQuotationById;
-using SalesManagement.Application.Features.Quotations.GetVendorQuotations;
+using SalesManagement.API.Features.Quotations;
+using SalesManagement.Application.Common;
+using SalesManagement.Application.Features.Quotations.QueryQuotations;
 
 namespace SalesManagement.API.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/[controller]")]
-    [SuppressMessage("Major Code Smell", "S6960:Controllers should not have mixed responsibilities",
-        Justification = "All actions operate on the same Quotations resource (list-mine, get-by-id, list-by-customer).")]
     public class QuotationsController : ControllerBase
     {
-        private readonly GetVendorQuotationsHandler _handler;
-        private readonly GetVendorQuotationByIdHandler _byIdHandler;
-        private readonly GetCustomerQuotationsHandler _byCustomerHandler;
+        private readonly QueryQuotationsHandler _handler;
 
-        public QuotationsController(
-            GetVendorQuotationsHandler handler,
-            GetVendorQuotationByIdHandler byIdHandler,
-            GetCustomerQuotationsHandler byCustomerHandler)
+        public QuotationsController(QueryQuotationsHandler handler)
         {
             _handler = handler;
-            _byIdHandler = byIdHandler;
-            _byCustomerHandler = byCustomerHandler;
         }
 
-        [HttpPost]
-        [ProducesResponseType(typeof(GetVendorQuotationsResult), StatusCodes.Status200OK)]
+        [HttpPost("[action]")]
+        [ProducesResponseType(typeof(QueryQuotationsResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<GetVendorQuotationsResult>> GetMine(
-            CancellationToken cancellationToken)
+        public async Task<ActionResult<QueryQuotationsResult>> Query(
+            [FromBody] QueryQuotationsRequest request, CancellationToken cancellationToken)
         {
             var partyId = User.GetPartyId();
+
+            var filters = new List<QueryFilterInput>();
+            if (request.Id is int id && id > 0)
+                filters.Add(new QueryFilterInput("quotationId", "eq", id.ToString()));
+            if (request.CustomerPartyRef is int cpr && cpr > 0)
+                filters.Add(new QueryFilterInput("customerPartyRef", "eq", cpr.ToString()));
+            if (request.Filters is not null)
+                filters.AddRange(request.Filters.Select(f => new QueryFilterInput(f.Field, f.Op, f.Value)));
+
+            var search = request.Search is null
+                ? null
+                : new QuerySearchInput(request.Search.Term, request.Search.Fields);
 
             var result = await _handler.Handle(
-                new GetVendorQuotationsQuery(partyId), cancellationToken);
-            return Ok(result);
-        }
+                new QueryQuotationsCommand(
+                    partyId, request.Scope, request.Fields, filters, search,
+                    request.OrderBy, request.Descending, request.Skip, request.Take,
+                    request.Page, request.PageSize),
+                cancellationToken);
 
-        [HttpPost("{id:int}")]
-        [ProducesResponseType(typeof(GetVendorQuotationByIdResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<GetVendorQuotationByIdResult>> GetById(
-            int id, CancellationToken cancellationToken)
-        {
-            var partyId = User.GetPartyId();
-
-            var result = await _byIdHandler.Handle(
-                new GetVendorQuotationByIdQuery(partyId, id), cancellationToken);
-            return Ok(result);
-        }
-
-        // POST api/quotations/customers/{customerPartyRef} — پیش‌فاکتورهای یک مشتری
-        [HttpPost("customers/{customerPartyRef:int}")]
-        [ProducesResponseType(typeof(GetCustomerQuotationsResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<GetCustomerQuotationsResult>> GetByCustomer(
-            int customerPartyRef, CancellationToken cancellationToken)
-        {
-            var partyId = User.GetPartyId();
-
-            var result = await _byCustomerHandler.Handle(
-                new GetCustomerQuotationsQuery(partyId, customerPartyRef), cancellationToken);
             return Ok(result);
         }
     }

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesManagement.API.Features.Customers;
 using SalesManagement.Application.Features.Customers.CreateCustomer;
@@ -6,7 +6,7 @@ using SalesManagement.Application.Features.Customers.CreateCustomer;
 namespace SalesManagement.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     public class CustomersController : ControllerBase
     {
         private readonly CreateCustomerHandler _createCustomerHandler;
@@ -29,6 +29,11 @@ namespace SalesManagement.API.Controllers
                 ? null
                 : Path.GetExtension(request.LicenseImage.FileName);
 
+            await using var profileStream = request.ProfileImage?.OpenReadStream();
+            var profileExt = request.ProfileImage is null
+                ? null
+                : Path.GetExtension(request.ProfileImage.FileName);
+
             var command = new CreateCustomerCommand(
                 request.VisitorCode,
                 request.FirstName, request.LastName, request.NationalCode,
@@ -37,7 +42,9 @@ namespace SalesManagement.API.Controllers
                 request.DateBirth, request.Gender,
                 request.HistoryElectricalActivity, request.ShopOperationalHistory,
                 request.TypeOwnership, request.AreaSpecialization,
-                licenseStream, licenseExt);
+                request.StoreName,
+                licenseStream, licenseExt,
+                profileStream, profileExt);
 
             var result = await _createCustomerHandler.Handle(command, cancellationToken);
             return Ok(result);

@@ -1,4 +1,6 @@
 ﻿using System.Data;
+using SalesManagement.Persistence.ConnectionFactories;
+using static SalesManagement.Persistence.Common.SepidarDb;
 using System.Data.Common;
 using System.IO;
 using Dapper;
@@ -74,10 +76,10 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
         private const string SqlInsertExtra = """
             INSERT INTO dbo.ExtraPartyData
                 (Id, DateBirth, Gender, HistoryElectricalActivity, ShopOperationalHistory,
-                 TypeOwnership, AreaSpecialization, ImageBusinessLicenseRef, PartyRef)
+                 StoreName, TypeOwnership, AreaSpecialization, ImageBusinessLicenseRef, PartyRef)
             VALUES
                 (@Id, @DateBirth, @Gender, @HistoryElectricalActivity, @ShopOperationalHistory,
-                 @TypeOwnership, @AreaSpecialization, @ImageBusinessLicenseRef, @PartyRef);
+                 @StoreName, @TypeOwnership, @AreaSpecialization, @ImageBusinessLicenseRef, @PartyRef);
             """;
 
         public async Task<int> CreateAsync(
@@ -100,7 +102,6 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 var ctx = await sepidar.QuerySingleAsync<RegistrationContext>(
                     SqlContext, new { VisitorCode = visitorCode, DefaultUserRef = defaultUserRef }, tx);
 
-                // اگر کاربر شهر نفرستاده، پیش‌فرضِ کانفیگ (تهران)؛ و باید در GNR.Location موجود باشد (FK)
                 var locationRef = c.LocationRef > 0 ? c.LocationRef : configProvider.Get().DefaultLocationRef;
                 var locationExists = await sepidar.ExecuteScalarAsync<int?>(
                     "SELECT 1 FROM GNR.Location WHERE LocationId = @LocationRef;",
@@ -143,7 +144,7 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 pParty.Add("@LastName_En", c.LastName);
                 pParty.Add("@IdentificationCode", c.NationalCode);
                 pParty.Add("@DLRef", dlId);
-                pParty.Add("@IsInBlacklist", 1);       
+                pParty.Add("@IsInBlacklist", 1);
                 pParty.Add("@IsVendor", 0);
                 pParty.Add("@IsBroker", 0);
                 pParty.Add("@IsEmployee", 0);
@@ -163,9 +164,9 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 pParty.Add("@CustomerGroupingRef", ctx.CustomerGroupingRef);
                 await sepidar.ExecuteAsync(SqlInsertParty, pParty, tx);
 
-                await InsertPhone(sepidar, tx, phone1, partyId, isMain: 0, type: 1, phone: c.LandlinePhone);   
-                await InsertPhone(sepidar, tx, phone2, partyId, isMain: 1, type: 2, phone: c.MobilePhone);  
-                await InsertPhone(sepidar, tx, phone3, partyId, isMain: 0, type: 2, phone: c.MessengerPhone);   
+                await InsertPhone(sepidar, tx, phone1, partyId, isMain: 0, type: 1, phone: c.LandlinePhone);
+                await InsertPhone(sepidar, tx, phone2, partyId, isMain: 1, type: 2, phone: c.MobilePhone);
+                await InsertPhone(sepidar, tx, phone3, partyId, isMain: 0, type: 2, phone: c.MessengerPhone);
 
                 var pAddr = new DynamicParameters();
                 pAddr.Add("@PartyAddressId", addressId);
@@ -197,12 +198,26 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                     await hesab.ExecuteAsync(SqlInsertPartyFile, pFile, txHesab);
                 }
 
+                if (c.ProfileFileName is not null)
+                {
+                    var pProfile = new DynamicParameters();
+                    pProfile.Add("@Id", Guid.NewGuid());
+                    pProfile.Add("@PartyRef", partyId);
+                    pProfile.Add("@FileName", c.ProfileFileName);
+                    pProfile.Add("@FileExtensions", Path.GetExtension(c.ProfileFileName));
+                    pProfile.Add("@IsOk", 1);
+                    pProfile.Add("@IsMain", 1);
+                    pProfile.Add("@Tables", "Party");
+                    await hesab.ExecuteAsync(SqlInsertPartyFile, pProfile, txHesab);
+                }
+
                 var pExtra = new DynamicParameters();
                 pExtra.Add("@Id", Guid.NewGuid());
                 pExtra.Add("@DateBirth", c.Extra.DateBirth);
                 pExtra.Add("@Gender", c.Extra.Gender);
                 pExtra.Add("@HistoryElectricalActivity", c.Extra.HistoryElectricalActivity);
                 pExtra.Add("@ShopOperationalHistory", c.Extra.ShopOperationalHistory);
+                pExtra.Add("@StoreName", c.Extra.StoreName);
                 pExtra.Add("@TypeOwnership", c.Extra.TypeOwnership?.GetDescription());
                 pExtra.Add("@AreaSpecialization", c.Extra.AreaSpecialization?.GetDescription());
                 pExtra.Add("@ImageBusinessLicenseRef", licenseFileId);
@@ -220,6 +235,13 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 await txHesab.RollbackAsync(cancellationToken);
                 throw new DomainException("این نام قبلاً برای یک طرف حساب ثبت شده است");
             }
+            catch (SqlException ex) when (ex.Number is 2601 or 2627 && IsIdCollision(ex))
+            {
+                await tx.RollbackAsync(cancellationToken);
+                await txHesab.RollbackAsync(cancellationToken);
+                throw new IdGenerationCollisionException(
+                    "تولید شناسه با یک ثبت‌نام هم‌زمان دیگر برخورد کرد");
+            }
             catch
             {
                 await tx.RollbackAsync(cancellationToken);
@@ -228,15 +250,10 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
             }
         }
 
-        private static async Task<int> NextIdAsync(DbConnection con, DbTransaction tx, string tableName)
-        {
-            var p = new DynamicParameters();
-            p.Add("@TableName", tableName);
-            p.Add("@IncValue", 1);
-            p.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
-            await con.ExecuteAsync("FMK.spGetNextId", p, tx, commandType: CommandType.StoredProcedure);
-            return p.Get<int>("@Id");
-        }
+        private static bool IsIdCollision(SqlException ex) =>
+            ex.Message.Contains("PK_Party") || ex.Message.Contains("PK_DL") ||
+            ex.Message.Contains("PK_PartyAddress") || ex.Message.Contains("PK_PartyPhone") ||
+            ex.Message.Contains("UIX_DL_Code");
 
         private static Task InsertPhone(
             DbConnection con, DbTransaction tx, int id, int partyId, int isMain, int type, string phone)

@@ -1,71 +1,52 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesManagement.API.Common;
-using SalesManagement.Application.Features.Invoices.GetCustomerInvoices;
-using SalesManagement.Application.Features.Invoices.GetVendorInvoiceById;
-using SalesManagement.Application.Features.Invoices.GetVendorInvoices;
+using SalesManagement.API.Features.Invoices;
+using SalesManagement.Application.Common;
+using SalesManagement.Application.Features.Invoices.QueryInvoices;
 
 namespace SalesManagement.API.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/[controller]")]
-    [SuppressMessage("Major Code Smell", "S6960:Controllers should not have mixed responsibilities",
-        Justification = "All actions operate on the same Invoices resource (list-mine, get-by-id, list-by-customer).")]
     public class InvoicesController : ControllerBase
     {
-        private readonly GetVendorInvoicesHandler _handler;
-        private readonly GetVendorInvoiceByIdHandler _byIdHandler;
-        private readonly GetCustomerInvoicesHandler _byCustomerHandler;
+        private readonly QueryInvoicesHandler _handler;
 
-        public InvoicesController(
-            GetVendorInvoicesHandler handler,
-            GetVendorInvoiceByIdHandler byIdHandler,
-            GetCustomerInvoicesHandler byCustomerHandler)
+        public InvoicesController(QueryInvoicesHandler handler)
         {
             _handler = handler;
-            _byIdHandler = byIdHandler;
-            _byCustomerHandler = byCustomerHandler;
         }
 
-        [HttpPost]
-        [ProducesResponseType(typeof(GetVendorInvoicesResult), StatusCodes.Status200OK)]
+        [HttpPost("[action]")]
+        [ProducesResponseType(typeof(QueryInvoicesResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<GetVendorInvoicesResult>> GetMine(
-            CancellationToken cancellationToken)
+        public async Task<ActionResult<QueryInvoicesResult>> Query(
+            [FromBody] QueryInvoicesRequest request, CancellationToken cancellationToken)
         {
             var partyId = User.GetPartyId();
+
+            var filters = new List<QueryFilterInput>();
+            if (request.Id is int id && id > 0)
+                filters.Add(new QueryFilterInput("invoiceId", "eq", id.ToString()));
+            if (request.CustomerPartyRef is int cpr && cpr > 0)
+                filters.Add(new QueryFilterInput("customerPartyRef", "eq", cpr.ToString()));
+            if (request.Filters is not null)
+                filters.AddRange(request.Filters.Select(f => new QueryFilterInput(f.Field, f.Op, f.Value)));
+
+            var search = request.Search is null
+                ? null
+                : new QuerySearchInput(request.Search.Term, request.Search.Fields);
 
             var result = await _handler.Handle(
-                new GetVendorInvoicesQuery(partyId), cancellationToken);
-            return Ok(result);
-        }
+                new QueryInvoicesCommand(
+                    partyId, request.Scope, request.Fields, filters, search,
+                    request.OrderBy, request.Descending, request.Skip, request.Take,
+                    request.Page, request.PageSize),
+                cancellationToken);
 
-        [HttpPost("{id:int}")]
-        [ProducesResponseType(typeof(GetVendorInvoiceByIdResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<GetVendorInvoiceByIdResult>> GetById(
-            int id, CancellationToken cancellationToken)
-        {
-            var partyId = User.GetPartyId();
-
-            var result = await _byIdHandler.Handle(
-                new GetVendorInvoiceByIdQuery(partyId, id), cancellationToken);
-            return Ok(result);
-        }
-
-        [HttpPost("customers/{customerPartyRef:int}")]
-        [ProducesResponseType(typeof(GetCustomerInvoicesResult), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<GetCustomerInvoicesResult>> GetByCustomer(
-            int customerPartyRef, CancellationToken cancellationToken)
-        {
-            var partyId = User.GetPartyId();
-
-            var result = await _byCustomerHandler.Handle(
-                new GetCustomerInvoicesQuery(partyId, customerPartyRef), cancellationToken);
             return Ok(result);
         }
     }

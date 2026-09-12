@@ -20,7 +20,7 @@ namespace SalesManagement.API.Controllers
         [ProducesResponseType(typeof(GetLocationsResult), StatusCodes.Status200OK)]
         public async Task<ActionResult<GetLocationsResult>> Provinces(CancellationToken cancellationToken)
         {
-            var result = await _getLocationsHandler.GetProvincesAsync(cancellationToken);
+            var result = await _getLocationsHandler.Handle(new GetLocationsQuery(), cancellationToken);
             return Ok(result);
         }
 
@@ -30,7 +30,8 @@ namespace SalesManagement.API.Controllers
         public async Task<ActionResult<GetLocationsResult>> Counties(
             int provinceId, CancellationToken cancellationToken)
         {
-            var result = await _getLocationsHandler.GetCountiesAsync(provinceId, cancellationToken);
+            var result = await _getLocationsHandler.Handle(
+                new GetLocationsQuery(provinceId), cancellationToken);
             return Ok(result);
         }
     }

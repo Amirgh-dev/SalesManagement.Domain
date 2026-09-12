@@ -4,4 +4,5 @@
   <Project Path="SalesManagement.Domain/SalesManagement.Domain.csproj" />
   <Project Path="SalesManagement.Infrastructure/SalesManagement.Infrastructure.csproj" />
   <Project Path="SalesManagement.Persistence/SalesManagement.Persistence.csproj" />
+  <Project Path="SalesManagement.Tests/SalesManagement.Tests.csproj" />
 </Solution>

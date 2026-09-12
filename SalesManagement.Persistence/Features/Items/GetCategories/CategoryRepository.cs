@@ -1,6 +1,5 @@
+using SalesManagement.Persistence.ConnectionFactories;
 using Dapper;
-using SalesManagement.Application.Common.Interfaces;
-using SalesManagement.Domain.Entities;
 using SalesManagement.Domain.Features.Items;
 using SalesManagement.Persistence.Features.Items.GetCategories.Dtos;
 

@@ -1,5 +1,3 @@
-﻿using SalesManagement.Domain.Entities;
-
 namespace SalesManagement.Domain.Features.Auth.PartyLogin
 {
     public interface IPartyRepository

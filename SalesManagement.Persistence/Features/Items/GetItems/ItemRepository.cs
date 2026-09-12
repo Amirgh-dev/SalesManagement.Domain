@@ -1,8 +1,6 @@
+using SalesManagement.Persistence.ConnectionFactories;
 using Dapper;
-using SalesManagement.Application.Common.Interfaces;
-using SalesManagement.Domain.Entities;
 using SalesManagement.Domain.Features.Items;
-using SalesManagement.Domain.ValueObjects;
 using SalesManagement.Persistence.Features.Items.GetItems.Dtos;
 
 namespace SalesManagement.Persistence.Features.Items.GetItems
@@ -16,7 +14,6 @@ namespace SalesManagement.Persistence.Features.Items.GetItems
             _connectionFactory = connectionFactory;
         }
 
-
         private static string GroupingJoin { get; } =
             "INNER JOIN GNR.Grouping AS g ON g.GroupingID = i.SaleGroupRef";
 
@@ -25,7 +22,6 @@ namespace SalesManagement.Persistence.Features.Items.GetItems
 
         private static string PropertyColumns { get; } =
             "ipa.ItemPropertyAmountID AS ItemPropertyAmountId, ipa.PropertyAmount1 AS BodyMaterial, ipa.PropertyAmount2 AS BodyColor, ipa.PropertyAmount3 AS OpticalSpectrum, ipa.PropertyAmount4 AS ProductModel, ipa.PropertyAmount5 AS Power, ipa.PropertyAmount6 AS Coverage, ipa.PropertyAmount10 AS QuantityCarton";
-
 
         private static string CatalogColumns { get; } =
             $"i.ItemID AS Id, i.Code, i.Title, i.UnitRef, i.Sellable, i.IsActive, g.GroupingID AS GroupingId, g.Code AS GroupingCode, g.Title AS GroupingTitle, g.ParentGroupRef, {PropertyColumns}, ISNULL(stk.TotalQuantity, 0) AS TotalQuantity, prc.MainPrice";
@@ -60,7 +56,6 @@ namespace SalesManagement.Persistence.Features.Items.GetItems
             ORDER BY i.Title DESC;
             """;
 
-
         private static string DetailColumns { get; } =
             $"i.ItemID AS ItemId, i.Type, i.Code, i.Title, i.UnitRef, i.SecondaryUnitRef, i.UnitsRatio, i.Sellable, i.IsActive, g.GroupingID AS GroupingId, g.Code AS GroupingCode, g.Title AS GroupingTitle, g.ParentGroupRef, {PropertyColumns}";
 
@@ -87,7 +82,6 @@ namespace SalesManagement.Persistence.Features.Items.GetItems
             FROM SLS.PriceNoteItem AS pni
             WHERE pni.SaleTypeRef = @SaleTypeRef AND pni.ItemRef = @ItemId;
             """;
-
 
         public async Task<IReadOnlyList<CatalogItem>> GetCatalogAsync(
             int saleTypeRef, CancellationToken cancellationToken = default) =>

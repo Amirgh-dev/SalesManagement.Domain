@@ -1,6 +1,5 @@
 namespace SalesManagement.Persistence.Features.Items.GetItems.Dtos
 {
-    /// <summary>ردیف خام کوئری کالا (ستون‌های INV.Item + GNR.Grouping + INV.ItemPropertyAmount).</summary>
     public class ItemDto
     {
         public int ItemId { get; set; }
