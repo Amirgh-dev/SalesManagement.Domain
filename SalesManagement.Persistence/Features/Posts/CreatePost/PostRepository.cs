@@ -1,6 +1,7 @@
 using SalesManagement.Persistence.ConnectionFactories;
 using System.Data.Common;
 using Dapper;
+using SalesManagement.Domain.Common;
 using SalesManagement.Domain.Common.Exceptions;
 using SalesManagement.Domain.Features.Posts;
 
@@ -20,8 +21,8 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
             """;
 
         private const string SqlInsertPost = """
-            INSERT INTO dbo.PostProfile (Id, ProfileRef, Title, Post, LikePost, CreationDate)
-            VALUES (@Id, @ProfileRef, @Title, @Post, @LikePost, @CreationDate);
+            INSERT INTO dbo.PostProfile (Id, ProfileRef, Title, Post, Type, LikePost, CreationDate)
+            VALUES (@Id, @ProfileRef, @Title, @Post, @Type, @LikePost, @CreationDate);
             """;
 
         private const string SqlSelectOwnedPost = """
@@ -32,7 +33,7 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
 
         private const string SqlUpdatePost = """
             UPDATE dbo.PostProfile
-            SET Title = @Title, Post = @Post
+            SET Title = @Title, Post = @Post, Type = @Type
             WHERE Id = @Id AND ProfileRef = @ProfileRef;
             """;
 
@@ -41,7 +42,7 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
             """;
 
         private const string SqlDeletePostFiles = """
-            DELETE FROM dbo.PostFile WHERE Id IN @Ids AND PostRef = @PostRef;
+            DELETE FROM dbo.PostFile WHERE PostRef = @PostRef;
             """;
 
         public async Task<IReadOnlyList<string>> CreateAsync(
@@ -72,6 +73,7 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
                     pPost.Add("@ProfileRef", post.ProfileRef);
                     pPost.Add("@Title", post.Title);
                     pPost.Add("@Post", post.Body);
+                    pPost.Add("@Type", post.Type.GetDescription());
                     pPost.Add("@LikePost", 0L);
                     pPost.Add("@CreationDate", DateTime.Now);
                     await connection.ExecuteAsync(SqlInsertPost, pPost, tx);
@@ -89,21 +91,19 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
                     pUpd.Add("@ProfileRef", post.ProfileRef);
                     pUpd.Add("@Title", post.Title);
                     pUpd.Add("@Post", post.Body);
+                    pUpd.Add("@Type", post.Type.GetDescription());
                     await connection.ExecuteAsync(SqlUpdatePost, pUpd, tx);
 
-                    if (post.RemovePhotoIds.Count > 0)
+                    if (post.PhotoFileNames.Count > 0)
                     {
-                        var toDelete = (await connection.QueryAsync<ExistingPhotoRow>(
+                        var existingPhotos = (await connection.QueryAsync<ExistingPhotoRow>(
                             SqlSelectExistingPhotos, new { PostRef = postId }, tx))
-                            .Where(f => post.RemovePhotoIds.Contains(f.Id))
                             .ToList();
 
-                        if (toDelete.Count > 0)
+                        if (existingPhotos.Count > 0)
                         {
-                            deletedFileNames.AddRange(toDelete.Select(f => f.FileName));
-                            await connection.ExecuteAsync(
-                                SqlDeletePostFiles,
-                                new { Ids = toDelete.Select(f => f.Id).ToArray(), PostRef = postId }, tx);
+                            deletedFileNames.AddRange(existingPhotos.Select(f => f.FileName));
+                            await connection.ExecuteAsync(SqlDeletePostFiles, new { PostRef = postId }, tx);
                         }
                     }
                 }

@@ -8,6 +8,7 @@ namespace SalesManagement.Tests.Features.Customers
         private static readonly NewCustomerExtra ValidExtra = new(null, null, null, null, null, null, null);
 
         private static NewCustomer Make(
+            int? partyId = null,
             string? firstName = "Ali",
             string? lastName = "Rezaei",
             string? nationalCode = "0012345678",
@@ -20,7 +21,7 @@ namespace SalesManagement.Tests.Features.Customers
             string? geolocation = null,
             NewCustomerExtra? extra = null)
             => NewCustomer.Create(
-                firstName, lastName, nationalCode, landline, mobile, messenger,
+                partyId, firstName, lastName, nationalCode, landline, mobile, messenger,
                 address, zipCode, locationRef, geolocation, extra ?? ValidExtra);
 
         // ---- required fields ------------------------------------------
@@ -145,6 +146,47 @@ namespace SalesManagement.Tests.Features.Customers
             Assert.Throws<DomainException>(() => Make(geolocation: geo));
         }
 
+        // ---- partyId / IsUpdate -----------------------------------------
+
+        [Fact]
+        public void PartyId_null_means_create_and_IsUpdate_is_false()
+        {
+            var c = Make(partyId: null);
+            Assert.Null(c.PartyId);
+            Assert.False(c.IsUpdate);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void PartyId_zero_or_negative_is_treated_as_create(int partyId)
+        {
+            var c = Make(partyId: partyId);
+            Assert.Null(c.PartyId);
+            Assert.False(c.IsUpdate);
+        }
+
+        [Fact]
+        public void PartyId_positive_means_update()
+        {
+            var c = Make(partyId: 42);
+            Assert.Equal(42, c.PartyId);
+            Assert.True(c.IsUpdate);
+        }
+
+        [Fact]
+        public void Validation_still_applies_when_updating()
+        {
+            Assert.Throws<DomainException>(() => Make(partyId: 42, firstName: "  "));
+        }
+
+        [Fact]
+        public void WithLicenseFile_replaces_existing_file_name_on_update()
+        {
+            var c = Make(partyId: 42).WithLicenseFile("old.jpg").WithLicenseFile("new.jpg");
+            Assert.Equal("new.jpg", c.LicenseFileName);
+        }
+
         // ---- files -----------------------------------------------------
 
         [Fact]
@@ -152,7 +194,6 @@ namespace SalesManagement.Tests.Features.Customers
         {
             var c = Make();
             Assert.Null(c.LicenseFileName);
-            Assert.Null(c.ProfileFileName);
         }
 
         [Fact]
@@ -160,13 +201,6 @@ namespace SalesManagement.Tests.Features.Customers
         {
             var c = Make().WithLicenseFile("license.jpg");
             Assert.Equal("license.jpg", c.LicenseFileName);
-        }
-
-        [Fact]
-        public void WithProfileFile_sets_profile_file_name()
-        {
-            var c = Make().WithProfileFile("profile.jpg");
-            Assert.Equal("profile.jpg", c.ProfileFileName);
         }
 
         [Fact]

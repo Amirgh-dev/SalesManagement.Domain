@@ -1,10 +1,7 @@
 using SalesManagement.API.Common;
 using SalesManagement.API.Common.Middlewares;
 using SalesManagement.Application.Features.Auth.PartyLogin;
-using SalesManagement.Application.Features.Items.GetCategories;
-using SalesManagement.Application.Features.Items.GetItemById;
-using SalesManagement.Application.Features.Items.GetItems;
-using SalesManagement.Application.Features.Items.GetItemsByCategory;
+using SalesManagement.Application.Features.Items.QueryItems;
 using SalesManagement.Application.Features.Quotations.QueryQuotations;
 using SalesManagement.Application.Features.Invoices.QueryInvoices;
 using SalesManagement.Application.Features.Customers.CreateCustomer;
@@ -13,6 +10,7 @@ using SalesManagement.Application.Features.PartyProfiles.QueryProfiles;
 using SalesManagement.Application.Features.PartyProfiles.SavePartyProfile;
 using SalesManagement.Application.Features.Posts.CreateComment;
 using SalesManagement.Application.Features.Posts.CreatePost;
+using SalesManagement.Application.Features.Notifications.GetNotifications;
 using SalesManagement.Infrastructure;
 using SalesManagement.Persistence;
 
@@ -22,10 +20,7 @@ builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<PartyLoginHandler>();
-builder.Services.AddScoped<GetItemsHandler>();
-builder.Services.AddScoped<GetItemByIdHandler>();
-builder.Services.AddScoped<GetCategoriesHandler>();
-builder.Services.AddScoped<GetItemsByCategoryHandler>();
+builder.Services.AddScoped<QueryItemsHandler>();
 builder.Services.AddScoped<QueryQuotationsHandler>();
 builder.Services.AddScoped<QueryInvoicesHandler>();
 builder.Services.AddScoped<CreateCustomerHandler>();
@@ -34,6 +29,7 @@ builder.Services.AddScoped<SavePartyProfileHandler>();
 builder.Services.AddScoped<QueryProfilesHandler>();
 builder.Services.AddScoped<CreatePostHandler>();
 builder.Services.AddScoped<CreateCommentHandler>();
+builder.Services.AddScoped<GetNotificationsHandler>();
 builder.Services.AddApiServices(builder.Configuration);
 
 var app = builder.Build();

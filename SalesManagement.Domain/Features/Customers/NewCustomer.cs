@@ -6,6 +6,7 @@ namespace SalesManagement.Domain.Features.Customers
 {
     public sealed record NewCustomer
     {
+        public int? PartyId { get; }
         public string FirstName { get; }
         public string LastName { get; }
         public string NationalCode { get; }
@@ -19,12 +20,13 @@ namespace SalesManagement.Domain.Features.Customers
         public decimal Longitude { get; }
         public NewCustomerExtra Extra { get; }
         public string? LicenseFileName { get; private init; }
-        public string? ProfileFileName { get; private init; }
+        public bool IsUpdate => PartyId is not null;
 
-        private NewCustomer(string firstName, string lastName, string nationalCode,
+        private NewCustomer(int? partyId, string firstName, string lastName, string nationalCode,
             string landline, string mobile, string messenger, string address, string zipCode,
             int locationRef, decimal latitude, decimal longitude, NewCustomerExtra extra)
         {
+            PartyId = partyId;
             FirstName = firstName;
             LastName = lastName;
             NationalCode = nationalCode;
@@ -40,7 +42,7 @@ namespace SalesManagement.Domain.Features.Customers
         }
 
         public static NewCustomer Create(
-            string? firstName, string? lastName, string? nationalCode,
+            int? partyId, string? firstName, string? lastName, string? nationalCode,
             string? landline, string? mobile, string? messenger,
             string? address, string? zipCode, int locationRef, string? geolocation,
             NewCustomerExtra extra)
@@ -55,16 +57,15 @@ namespace SalesManagement.Domain.Features.Customers
             if (string.IsNullOrWhiteSpace(zipCode)) throw new DomainException("کد پستی مشتری را وارد کنید");
 
             var (lat, lng) = ParseGeolocation(geolocation);
+            var normalizedPartyId = partyId is null or <= 0 ? (int?)null : partyId;
 
             return new NewCustomer(
-                firstName.Trim(), lastName.Trim(), nationalCode.Trim(),
+                normalizedPartyId, firstName.Trim(), lastName.Trim(), nationalCode.Trim(),
                 landline.Trim(), mobile.Trim(), messenger.Trim(),
                 address.Trim(), zipCode.Trim(), locationRef, lat, lng, extra);
         }
 
         public NewCustomer WithLicenseFile(string? fileName) => this with { LicenseFileName = fileName };
-
-        public NewCustomer WithProfileFile(string? fileName) => this with { ProfileFileName = fileName };
 
         private static (decimal Lat, decimal Lng) ParseGeolocation(string? value)
         {

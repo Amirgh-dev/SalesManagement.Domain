@@ -29,10 +29,12 @@ namespace SalesManagement.Domain.Features.PartyProfiles
         public bool Descending { get; }
         public int Skip { get; }
         public int Take { get; }
+        public int? ProvinceRef { get; }
+        public int? CountyRef { get; }
 
         private ProfileQuery(
             Guid? id, ProfileScope scope, IReadOnlyList<string> fields, ProfileSearch? search,
-            string? orderBy, bool descending, int skip, int take)
+            string? orderBy, bool descending, int skip, int take, int? provinceRef, int? countyRef)
         {
             Id = id;
             Scope = scope;
@@ -42,6 +44,8 @@ namespace SalesManagement.Domain.Features.PartyProfiles
             Descending = descending;
             Skip = skip;
             Take = take;
+            ProvinceRef = provinceRef;
+            CountyRef = countyRef;
         }
 
         public static ProfileQuery Create(
@@ -55,7 +59,9 @@ namespace SalesManagement.Domain.Features.PartyProfiles
             int? skip,
             int? take,
             int? page,
-            int? pageSize)
+            int? pageSize,
+            int? provinceRef = null,
+            int? countyRef = null)
         {
             var parsedId = id is { } g && g != Guid.Empty ? g : (Guid?)null;
 
@@ -82,7 +88,9 @@ namespace SalesManagement.Domain.Features.PartyProfiles
             return new ProfileQuery(
                 parsedId, parsedScope, parsedFields, parsedSearch,
                 IsBlankOrPlaceholder(orderBy) ? null : orderBy.Trim(),
-                descending, s, t);
+                descending, s, t,
+                provinceRef is > 0 ? provinceRef : null,
+                countyRef is > 0 ? countyRef : null);
         }
 
         private static ProfileScope ParseScope(string? scope)

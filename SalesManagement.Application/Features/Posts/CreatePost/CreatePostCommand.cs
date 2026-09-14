@@ -1,3 +1,5 @@
+using SalesManagement.Domain.Enums;
+
 namespace SalesManagement.Application.Features.Posts.CreatePost
 {
     public record CreatePostCommand(
@@ -5,6 +7,6 @@ namespace SalesManagement.Application.Features.Posts.CreatePost
         Guid ProfileRef,
         string? Title,
         string? Post,
-        IReadOnlyList<(Stream Content, string? Extension)> Images,
-        IReadOnlyList<Guid>? RemovePhotoIds);
+        TypePost? Type,
+        IReadOnlyList<(Stream Content, string? Extension)> Images);
 }

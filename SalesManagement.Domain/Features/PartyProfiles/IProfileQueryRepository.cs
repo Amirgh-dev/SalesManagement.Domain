@@ -5,7 +5,9 @@ namespace SalesManagement.Domain.Features.PartyProfiles
         Task<(int Total,
               IReadOnlyList<IDictionary<string, object?>>? Profiles,
               IReadOnlyList<IDictionary<string, object?>>? Posts,
-              IReadOnlyList<IDictionary<string, object?>>? Comments)> QueryAsync(
+              IReadOnlyList<IDictionary<string, object?>>? Comments,
+              IReadOnlyList<IDictionary<string, object?>>? Provinces,
+              IReadOnlyList<IDictionary<string, object?>>? Counties)> QueryAsync(
             ProfileQuery query, CancellationToken cancellationToken = default);
     }
 }

@@ -17,7 +17,7 @@ namespace SalesManagement.Application.Features.Customers.CreateCustomer
             CreateCustomerCommand cmd, CancellationToken cancellationToken = default)
         {
             var newCustomer = NewCustomer.Create(
-                cmd.FirstName, cmd.LastName, cmd.NationalCode,
+                cmd.PartyId, cmd.FirstName, cmd.LastName, cmd.NationalCode,
                 cmd.LandlinePhone, cmd.MobilePhone, cmd.MessengerPhone,
                 cmd.Address, cmd.ZipCode, cmd.LocationRef, cmd.Geolocation,
                 new NewCustomerExtra(
@@ -34,17 +34,20 @@ namespace SalesManagement.Application.Features.Customers.CreateCustomer
                 newCustomer = newCustomer.WithLicenseFile(savedLicense);
             }
 
-            string? savedProfile = null;
-            if (cmd.ProfileImageContent is not null)
-            {
-                savedProfile = await fileStorage.SaveAsync(
-                    cmd.ProfileImageContent, PartyFolder,
-                    cmd.ProfileImageExtension ?? ".jpg", cancellationToken);
-                newCustomer = newCustomer.WithProfileFile(savedProfile);
-            }
-
             try
             {
+                if (newCustomer.IsUpdate)
+                {
+                    var removedFileNames = await customerRepository.UpdateAsync(
+                        newCustomer, cmd.VisitorCode, cancellationToken);
+
+                    foreach (var fileName in removedFileNames)
+                        await fileStorage.DeleteAsync(PartyFolder, fileName, CancellationToken.None);
+
+                    logger.LogInformation("مشتری به‌روزرسانی شد: PartyId={PartyId}", newCustomer.PartyId);
+                    return new CreateCustomerResult(newCustomer.PartyId!.Value);
+                }
+
                 for (var attempt = 1; ; attempt++)
                 {
                     try
@@ -67,8 +70,6 @@ namespace SalesManagement.Application.Features.Customers.CreateCustomer
             {
                 if (savedLicense is not null)
                     await fileStorage.DeleteAsync(PartyFolder, savedLicense, CancellationToken.None);
-                if (savedProfile is not null)
-                    await fileStorage.DeleteAsync(PartyFolder, savedProfile, CancellationToken.None);
                 throw;
             }
         }

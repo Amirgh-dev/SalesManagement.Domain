@@ -3,6 +3,7 @@
 namespace SalesManagement.Application.Features.Customers.CreateCustomer
 {
     public record CreateCustomerCommand(
+        int? PartyId,
         string? VisitorCode,
         string? FirstName,
         string? LastName,
@@ -22,7 +23,5 @@ namespace SalesManagement.Application.Features.Customers.CreateCustomer
         AreaSpecialization? AreaSpecialization,
         string? StoreName,
         Stream? LicenseImageContent,
-        string? LicenseImageExtension,
-        Stream? ProfileImageContent,
-        string? ProfileImageExtension);
+        string? LicenseImageExtension);
 }

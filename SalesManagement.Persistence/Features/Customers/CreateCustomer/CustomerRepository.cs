@@ -82,6 +82,54 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                  @StoreName, @TypeOwnership, @AreaSpecialization, @ImageBusinessLicenseRef, @PartyRef);
             """;
 
+        private const string SqlSelectPartyForUpdate = """
+            SELECT TOP (1) p.PartyId, p.DLRef
+            FROM GNR.Party AS p
+            WHERE p.PartyId = @PartyId AND p.IsCustomer = 1;
+            """;
+
+        private const string SqlUpdateDl = """
+            UPDATE ACC.DL
+            SET Title = @Title, Title_En = @Title_En, LastModifier = @LastModifier, LastModificationDate = @LastModificationDate
+            WHERE DLId = @DLId;
+            """;
+
+        private const string SqlUpdateParty = """
+            UPDATE GNR.Party
+            SET Name = @Name, LastName = @LastName, Name_En = @Name_En, LastName_En = @LastName_En,
+                IdentificationCode = @IdentificationCode, LastModifier = @LastModifier, LastModificationDate = @LastModificationDate
+            WHERE PartyId = @PartyId;
+            """;
+
+        private const string SqlUpdatePhone = """
+            UPDATE GNR.PartyPhone SET Phone = @Phone
+            WHERE PartyRef = @PartyRef AND Type = @Type AND IsMain = @IsMain;
+            """;
+
+        private const string SqlUpdateAddress = """
+            UPDATE GNR.PartyAddress
+            SET Address = @Address, LocationRef = @LocationRef, ZipCode = @ZipCode, Adress_En = @Adress_En,
+                Latitude = @Latitude, Longitude = @Longitude
+            WHERE PartyRef = @PartyRef AND IsMain = 1;
+            """;
+
+        private const string SqlSelectLicenseFile = """
+            SELECT TOP (1) Id, FileName FROM dbo.PartyFile WHERE PartyRef = @PartyRef AND Tables = 'Party';
+            """;
+
+        private const string SqlDeleteLicenseFile = """
+            DELETE FROM dbo.PartyFile WHERE Id = @Id;
+            """;
+
+        private const string SqlUpdateExtra = """
+            UPDATE dbo.ExtraPartyData
+            SET DateBirth = @DateBirth, Gender = @Gender, HistoryElectricalActivity = @HistoryElectricalActivity,
+                ShopOperationalHistory = @ShopOperationalHistory, StoreName = @StoreName,
+                TypeOwnership = @TypeOwnership, AreaSpecialization = @AreaSpecialization,
+                ImageBusinessLicenseRef = COALESCE(@NewImageBusinessLicenseRef, ImageBusinessLicenseRef)
+            WHERE PartyRef = @PartyRef;
+            """;
+
         public async Task<int> CreateAsync(
             NewCustomer c, string? visitorCode, CancellationToken cancellationToken = default)
         {
@@ -198,19 +246,6 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                     await hesab.ExecuteAsync(SqlInsertPartyFile, pFile, txHesab);
                 }
 
-                if (c.ProfileFileName is not null)
-                {
-                    var pProfile = new DynamicParameters();
-                    pProfile.Add("@Id", Guid.NewGuid());
-                    pProfile.Add("@PartyRef", partyId);
-                    pProfile.Add("@FileName", c.ProfileFileName);
-                    pProfile.Add("@FileExtensions", Path.GetExtension(c.ProfileFileName));
-                    pProfile.Add("@IsOk", 1);
-                    pProfile.Add("@IsMain", 1);
-                    pProfile.Add("@Tables", "Party");
-                    await hesab.ExecuteAsync(SqlInsertPartyFile, pProfile, txHesab);
-                }
-
                 var pExtra = new DynamicParameters();
                 pExtra.Add("@Id", Guid.NewGuid());
                 pExtra.Add("@DateBirth", c.Extra.DateBirth);
@@ -240,7 +275,7 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 await tx.RollbackAsync(cancellationToken);
                 await txHesab.RollbackAsync(cancellationToken);
                 throw new IdGenerationCollisionException(
-                    "تولید شناسه با یک ثبت‌نام هم‌زمان دیگر برخورد کرد");
+                    "لطفا کمی بعد دوباره تلاش کنید");
             }
             catch
             {
@@ -248,6 +283,146 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 await txHesab.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+        public async Task<IReadOnlyList<string>> UpdateAsync(
+            NewCustomer c, string? visitorCode, CancellationToken cancellationToken = default)
+        {
+            var partyId = c.PartyId ?? throw new DomainException("شناسه مشتری نامعتبر است");
+            var defaultUserRef = configProvider.Get().DefaultUserRef;
+
+            await using var sepidar = (DbConnection)sepidarFactory.CreateConnection();
+            await using var hesab = (DbConnection)hesabFactory.CreateConnection();
+            await sepidar.OpenAsync(cancellationToken);
+            await hesab.OpenAsync(cancellationToken);
+
+            await using var tx = await sepidar.BeginTransactionAsync(cancellationToken);
+            await using var txHesab = await hesab.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                var now = DateTime.Now;
+
+                var ctx = await sepidar.QuerySingleAsync<RegistrationContext>(
+                    SqlContext, new { VisitorCode = visitorCode, DefaultUserRef = defaultUserRef }, tx);
+
+                var party = await sepidar.QueryFirstOrDefaultAsync<PartyRow>(
+                    SqlSelectPartyForUpdate, new { PartyId = partyId }, tx);
+                if (party is null)
+                    throw new DomainException("مشتری پیدا نشد");
+
+                var locationRef = c.LocationRef > 0 ? c.LocationRef : configProvider.Get().DefaultLocationRef;
+                var locationExists = await sepidar.ExecuteScalarAsync<int?>(
+                    "SELECT 1 FROM GNR.Location WHERE LocationId = @LocationRef;",
+                    new { LocationRef = locationRef }, tx);
+                if (locationExists is null)
+                    throw new DomainException("شهر/استان انتخاب‌شده معتبر نیست");
+
+                var title = $"{c.LastName} {c.FirstName}".Trim();
+
+                var pDl = new DynamicParameters();
+                pDl.Add("@DLId", party.DLRef);
+                pDl.Add("@Title", title);
+                pDl.Add("@Title_En", title);
+                pDl.Add("@LastModifier", ctx.Creator);
+                pDl.Add("@LastModificationDate", now);
+                await sepidar.ExecuteAsync(SqlUpdateDl, pDl, tx);
+
+                var pParty = new DynamicParameters();
+                pParty.Add("@PartyId", partyId);
+                pParty.Add("@Name", c.FirstName);
+                pParty.Add("@LastName", c.LastName);
+                pParty.Add("@Name_En", c.FirstName);
+                pParty.Add("@LastName_En", c.LastName);
+                pParty.Add("@IdentificationCode", c.NationalCode);
+                pParty.Add("@LastModifier", ctx.Creator);
+                pParty.Add("@LastModificationDate", now);
+                await sepidar.ExecuteAsync(SqlUpdateParty, pParty, tx);
+
+                await UpdatePhone(sepidar, tx, partyId, isMain: 0, type: 1, phone: c.LandlinePhone);
+                await UpdatePhone(sepidar, tx, partyId, isMain: 1, type: 2, phone: c.MobilePhone);
+                await UpdatePhone(sepidar, tx, partyId, isMain: 0, type: 2, phone: c.MessengerPhone);
+
+                var pAddr = new DynamicParameters();
+                pAddr.Add("@PartyRef", partyId);
+                pAddr.Add("@Address", c.Address);
+                pAddr.Add("@LocationRef", locationRef);
+                pAddr.Add("@ZipCode", c.ZipCode);
+                pAddr.Add("@Adress_En", c.Address);
+                pAddr.Add("@Latitude", c.Latitude);
+                pAddr.Add("@Longitude", c.Longitude);
+                await sepidar.ExecuteAsync(SqlUpdateAddress, pAddr, tx);
+
+                var deletedFileNames = new List<string>();
+                Guid? newLicenseFileId = null;
+                Guid? oldLicenseFileId = null;
+                if (c.LicenseFileName is not null)
+                {
+                    var existingFile = await hesab.QueryFirstOrDefaultAsync<ExistingFileRow>(
+                        SqlSelectLicenseFile, new { PartyRef = partyId }, txHesab);
+
+                    newLicenseFileId = Guid.NewGuid();
+                    var pFile = new DynamicParameters();
+                    pFile.Add("@Id", newLicenseFileId);
+                    pFile.Add("@PartyRef", partyId);
+                    pFile.Add("@FileName", c.LicenseFileName);
+                    pFile.Add("@FileExtensions", Path.GetExtension(c.LicenseFileName));
+                    pFile.Add("@IsOk", 1);
+                    pFile.Add("@IsMain", 0);
+                    pFile.Add("@Tables", "Party");
+                    await hesab.ExecuteAsync(SqlInsertPartyFile, pFile, txHesab);
+
+                    if (existingFile is not null)
+                    {
+                        oldLicenseFileId = existingFile.Id;
+                        deletedFileNames.Add(existingFile.FileName);
+                    }
+                }
+
+                var pExtra = new DynamicParameters();
+                pExtra.Add("@PartyRef", partyId);
+                pExtra.Add("@DateBirth", c.Extra.DateBirth);
+                pExtra.Add("@Gender", c.Extra.Gender);
+                pExtra.Add("@HistoryElectricalActivity", c.Extra.HistoryElectricalActivity);
+                pExtra.Add("@ShopOperationalHistory", c.Extra.ShopOperationalHistory);
+                pExtra.Add("@StoreName", c.Extra.StoreName);
+                pExtra.Add("@TypeOwnership", c.Extra.TypeOwnership?.GetDescription());
+                pExtra.Add("@AreaSpecialization", c.Extra.AreaSpecialization?.GetDescription());
+                pExtra.Add("@NewImageBusinessLicenseRef", newLicenseFileId);
+                await hesab.ExecuteAsync(SqlUpdateExtra, pExtra, txHesab);
+
+                // ExtraPartyData.ImageBusinessLicenseRef must point elsewhere before the old file row can be deleted (FK)
+                if (oldLicenseFileId is not null)
+                    await hesab.ExecuteAsync(SqlDeleteLicenseFile, new { Id = oldLicenseFileId }, txHesab);
+
+                await txHesab.CommitAsync(cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+
+                return deletedFileNames;
+            }
+            catch (SqlException ex) when (ex.Number is 2601 or 2627 && ex.Message.Contains("UIX_DL_Title"))
+            {
+                await tx.RollbackAsync(cancellationToken);
+                await txHesab.RollbackAsync(cancellationToken);
+                throw new DomainException("این نام قبلاً برای یک طرف حساب ثبت شده است");
+            }
+            catch
+            {
+                await tx.RollbackAsync(cancellationToken);
+                await txHesab.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+        private static Task UpdatePhone(
+            DbConnection con, DbTransaction tx, int partyId, int isMain, int type, string phone)
+        {
+            var p = new DynamicParameters();
+            p.Add("@PartyRef", partyId);
+            p.Add("@Type", type);
+            p.Add("@IsMain", isMain);
+            p.Add("@Phone", phone);
+            return con.ExecuteAsync(SqlUpdatePhone, p, tx);
         }
 
         private static bool IsIdCollision(SqlException ex) =>
@@ -272,6 +447,18 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
         {
             public int Creator { get; set; }
             public int? CustomerGroupingRef { get; set; }
+        }
+
+        private sealed class PartyRow
+        {
+            public int PartyId { get; set; }
+            public int DLRef { get; set; }
+        }
+
+        private sealed class ExistingFileRow
+        {
+            public Guid Id { get; set; }
+            public string FileName { get; set; } = "";
         }
     }
 }

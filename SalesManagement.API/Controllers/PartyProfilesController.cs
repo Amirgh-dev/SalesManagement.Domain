@@ -82,7 +82,8 @@ namespace SalesManagement.API.Controllers
                     request.Scope, request.Fields,
                     request.Search?.Term, request.Search?.Fields,
                     request.OrderBy, request.Descending,
-                    request.Skip, request.Take, request.Page, request.PageSize),
+                    request.Skip, request.Take, request.Page, request.PageSize,
+                    request.ProvinceRef, request.CountyRef),
                 cancellationToken);
 
             return Ok(result);

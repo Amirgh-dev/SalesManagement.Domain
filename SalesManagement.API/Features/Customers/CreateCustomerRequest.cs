@@ -5,6 +5,7 @@ namespace SalesManagement.API.Features.Customers
 {
     public class CreateCustomerRequest
     {
+        public int? PartyId { get; init; }
         public string? VisitorCode { get; init; }
 
         [Required] public string FirstName { get; init; } = "";
@@ -28,6 +29,5 @@ namespace SalesManagement.API.Features.Customers
         public string? StoreName { get; init; }
 
         public IFormFile? LicenseImage { get; init; }
-        public IFormFile? ProfileImage { get; init; }
     }
 }

@@ -39,11 +39,11 @@ namespace SalesManagement.Application.Features.PartyProfiles.SavePartyProfile
 
             try
             {
-                var (created, oldMainPhotoFileName) =
+                var (created, deletedFileNames) =
                     await partyProfileRepository.UpsertAsync(profile, cancellationToken);
 
-                if (oldMainPhotoFileName is not null)
-                    await fileStorage.DeleteAsync(ProfileFolder, oldMainPhotoFileName, CancellationToken.None);
+                foreach (var fileName in deletedFileNames)
+                    await fileStorage.DeleteAsync(ProfileFolder, fileName, CancellationToken.None);
 
                 logger.LogInformation(
                     "پروفایلِ کاربر {PartyRef} ذخیره شد (Created={Created})", profile.PartyRef, created);

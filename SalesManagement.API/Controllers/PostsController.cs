@@ -45,7 +45,7 @@ namespace SalesManagement.API.Controllers
                 await _createPostHandler.Handle(
                     new CreatePostCommand(
                         request.Id, request.ProfileRef.GetValueOrDefault(), request.Title, request.Post,
-                        imageInputs, request.RemovePhotoIds),
+                        request.Type, imageInputs),
                     cancellationToken);
             }
             finally

@@ -21,9 +21,11 @@ namespace SalesManagement.Application.Features.PartyProfiles.QueryProfiles
                 cmd.Skip,
                 cmd.Take,
                 cmd.Page,
-                cmd.PageSize);
+                cmd.PageSize,
+                cmd.ProvinceRef,
+                cmd.CountyRef);
 
-            var (total, profiles, posts, comments) =
+            var (total, profiles, posts, comments, provinces, counties) =
                 await profileQueryRepository.QueryAsync(query, cancellationToken);
 
             logger.LogInformation(
@@ -31,7 +33,7 @@ namespace SalesManagement.Application.Features.PartyProfiles.QueryProfiles
                 query.Scope.Primary, query.Id, total,
                 profiles?.Count ?? 0, posts?.Count ?? 0, comments?.Count ?? 0);
 
-            return new QueryProfilesResult(total, profiles, posts, comments);
+            return new QueryProfilesResult(total, profiles, posts, comments, provinces, counties);
         }
     }
 }

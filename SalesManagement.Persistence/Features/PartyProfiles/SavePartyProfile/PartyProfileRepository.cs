@@ -34,6 +34,10 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
             SELECT TOP (1) Id, FileName FROM dbo.PartyFile WHERE ProfileRef = @ProfileRef AND IsMain = 1;
             """;
 
+        private const string SqlSelectGalleryPhotos = """
+            SELECT Id, FileName FROM dbo.PartyFile WHERE ProfileRef = @ProfileRef AND IsMain = 0;
+            """;
+
         private const string SqlInsertPartyFile = """
             INSERT INTO dbo.PartyFile (Id, PartyRef, ProfileRef, FileName, FileExtensions, IsOk, IsMain, Tables)
             VALUES (@Id, @PartyRef, @ProfileRef, @FileName, @FileExtensions, @IsOk, @IsMain, @Tables);
@@ -41,6 +45,10 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
 
         private const string SqlDeletePartyFile = """
             DELETE FROM dbo.PartyFile WHERE Id = @Id;
+            """;
+
+        private const string SqlDeleteGalleryPhotos = """
+            DELETE FROM dbo.PartyFile WHERE ProfileRef = @ProfileRef AND IsMain = 0;
             """;
 
         private const string SqlSelectMainAddress = """
@@ -61,7 +69,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
             WHERE PartyAddressId = @PartyAddressId;
             """;
 
-        public async Task<(bool Created, string? OldProfilePhotoFileName)> UpsertAsync(
+        public async Task<(bool Created, IReadOnlyList<string> DeletedFileNames)> UpsertAsync(
             PartyProfile profile, CancellationToken cancellationToken = default)
         {
             await using var connection = (DbConnection)connectionFactory.CreateConnection();
@@ -135,7 +143,8 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
                     }
                 }
 
-                string? oldMainPhotoFileName = null;
+                var deletedFileNames = new List<string>();
+
                 if (profile.ProfilePhotoFileName is not null)
                 {
                     var existingMain = await connection.QueryFirstOrDefaultAsync<ExistingPhotoRow>(
@@ -143,7 +152,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
 
                     if (existingMain is not null)
                     {
-                        oldMainPhotoFileName = existingMain.FileName;
+                        deletedFileNames.Add(existingMain.FileName);
                         await connection.ExecuteAsync(SqlDeletePartyFile, new { existingMain.Id }, tx);
                     }
 
@@ -152,12 +161,24 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
                         profile.ProfilePhotoFileName, isMain: true);
                 }
 
-                foreach (var fileName in profile.PhotoFileNames)
-                    await InsertPartyFileAsync(connection, tx, profile.PartyRef, profileId, fileName, isMain: false);
+                if (profile.PhotoFileNames.Count > 0)
+                {
+                    var existingGallery = (await connection.QueryAsync<ExistingPhotoRow>(
+                        SqlSelectGalleryPhotos, new { ProfileRef = profileId }, tx)).ToList();
+
+                    if (existingGallery.Count > 0)
+                    {
+                        deletedFileNames.AddRange(existingGallery.Select(f => f.FileName));
+                        await connection.ExecuteAsync(SqlDeleteGalleryPhotos, new { ProfileRef = profileId }, tx);
+                    }
+
+                    foreach (var fileName in profile.PhotoFileNames)
+                        await InsertPartyFileAsync(connection, tx, profile.PartyRef, profileId, fileName, isMain: false);
+                }
 
                 await tx.CommitAsync(cancellationToken);
                 await txSepidar.CommitAsync(cancellationToken);
-                return (created, oldMainPhotoFileName);
+                return (created, deletedFileNames);
             }
             catch
             {

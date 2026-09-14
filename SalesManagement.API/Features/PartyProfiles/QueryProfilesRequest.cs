@@ -16,6 +16,9 @@ namespace SalesManagement.API.Features.PartyProfiles
         public int? Page { get; init; }
         public int? PageSize { get; init; }
 
+        public int? ProvinceRef { get; init; }
+        public int? CountyRef { get; init; }
+
         public class ProfileSearchSpec
         {
             public string? Term { get; init; }

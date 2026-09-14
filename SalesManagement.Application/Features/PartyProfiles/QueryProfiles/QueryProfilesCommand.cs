@@ -11,5 +11,7 @@ namespace SalesManagement.Application.Features.PartyProfiles.QueryProfiles
         int? Skip,
         int? Take,
         int? Page,
-        int? PageSize);
+        int? PageSize,
+        int? ProvinceRef,
+        int? CountyRef);
 }

@@ -5,7 +5,6 @@ using static SalesManagement.Persistence.Common.DapperRows;
 using static SalesManagement.Persistence.Common.SqlFilter;
 using System.Data;
 using Dapper;
-using SalesManagement.Domain.Common;
 using SalesManagement.Domain.Features.Quotations;
 
 namespace SalesManagement.Persistence.Features.Quotations.QueryQuotations

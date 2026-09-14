@@ -1,4 +1,5 @@
 using SalesManagement.Domain.Common.Exceptions;
+using SalesManagement.Domain.Enums;
 using SalesManagement.Domain.Features.Posts;
 
 namespace SalesManagement.Tests.Features.Posts
@@ -12,8 +13,8 @@ namespace SalesManagement.Tests.Features.Posts
             Guid? profileRef = null,
             string? title = "Title",
             string? body = "Body",
-            IReadOnlyList<Guid>? removePhotoIds = null)
-            => NewPost.Create(id, profileRef ?? ValidProfileRef, title, body, removePhotoIds);
+            TypePost? type = null)
+            => NewPost.Create(id, profileRef ?? ValidProfileRef, title, body, type);
 
         // ---- validation ---------------------------------------------
 
@@ -76,28 +77,22 @@ namespace SalesManagement.Tests.Features.Posts
             Assert.True(post.IsUpdate);
         }
 
-        // ---- RemovePhotoIds --------------------------------------------
+        // ---- type -------------------------------------------------------
 
         [Fact]
-        public void RemovePhotoIds_null_gives_empty_list()
+        public void Type_defaults_to_post_when_not_given()
         {
-            Assert.Empty(Make(removePhotoIds: null).RemovePhotoIds);
+            Assert.Equal(TypePost.Post, Make().Type);
         }
 
-        [Fact]
-        public void RemovePhotoIds_empty_guids_are_filtered_out()
+        [Theory]
+        [InlineData(TypePost.Urgent)]
+        [InlineData(TypePost.Sale)]
+        [InlineData(TypePost.Buy)]
+        [InlineData(TypePost.Post)]
+        public void Type_is_preserved_when_given(TypePost type)
         {
-            var id = Guid.NewGuid();
-            var post = Make(removePhotoIds: new[] { Guid.Empty, id, Guid.Empty });
-            Assert.Equal(new[] { id }, post.RemovePhotoIds);
-        }
-
-        [Fact]
-        public void RemovePhotoIds_duplicates_are_removed()
-        {
-            var id = Guid.NewGuid();
-            var post = Make(removePhotoIds: new[] { id, id, id });
-            Assert.Single(post.RemovePhotoIds);
+            Assert.Equal(type, Make(type: type).Type);
         }
 
         // ---- photos -----------------------------------------------------

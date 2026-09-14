@@ -29,12 +29,8 @@ namespace SalesManagement.API.Controllers
                 ? null
                 : Path.GetExtension(request.LicenseImage.FileName);
 
-            await using var profileStream = request.ProfileImage?.OpenReadStream();
-            var profileExt = request.ProfileImage is null
-                ? null
-                : Path.GetExtension(request.ProfileImage.FileName);
-
             var command = new CreateCustomerCommand(
+                request.PartyId,
                 request.VisitorCode,
                 request.FirstName, request.LastName, request.NationalCode,
                 request.LandlinePhone, request.MobilePhone, request.MessengerPhone,
@@ -43,8 +39,7 @@ namespace SalesManagement.API.Controllers
                 request.HistoryElectricalActivity, request.ShopOperationalHistory,
                 request.TypeOwnership, request.AreaSpecialization,
                 request.StoreName,
-                licenseStream, licenseExt,
-                profileStream, profileExt);
+                licenseStream, licenseExt);
 
             var result = await _createCustomerHandler.Handle(command, cancellationToken);
             return Ok(result);

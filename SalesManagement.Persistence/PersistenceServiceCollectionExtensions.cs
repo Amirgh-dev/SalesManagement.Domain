@@ -4,8 +4,7 @@ using SalesManagement.Domain.Features.Auth.PartyLogin;
 using SalesManagement.Domain.Features.Items;
 using SalesManagement.Persistence.ConnectionFactories;
 using SalesManagement.Persistence.Features.Auth.PartyLogin;
-using SalesManagement.Persistence.Features.Items.GetCategories;
-using SalesManagement.Persistence.Features.Items.GetItems;
+using SalesManagement.Persistence.Features.Items.QueryItems;
 using SalesManagement.Domain.Features.Quotations;
 using SalesManagement.Persistence.Features.Quotations.QueryQuotations;
 using SalesManagement.Domain.Features.Customers;
@@ -20,6 +19,8 @@ using SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles;
 using SalesManagement.Domain.Features.Posts;
 using SalesManagement.Persistence.Features.Posts.CreatePost;
 using SalesManagement.Persistence.Features.Posts.CreateComment;
+using SalesManagement.Domain.Features.Notifications;
+using SalesManagement.Persistence.Features.Notifications.GetNotifications;
 
 namespace SalesManagement.Persistence
 {
@@ -32,8 +33,7 @@ namespace SalesManagement.Persistence
             services.AddSingleton<ISepidyarhesabConnectionFactory, SepidyarhesabConnectionFactory>();
 
             services.AddScoped<IPartyRepository, PartyRepository>();
-            services.AddScoped<IItemRepository, ItemRepository>();
-            services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<IItemQueryRepository, ItemQueryRepository>();
             services.AddScoped<IQuotationQueryRepository, QuotationQueryRepository>();
             services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddScoped<ILocationRepository, LocationRepository>();
@@ -41,7 +41,9 @@ namespace SalesManagement.Persistence
             services.AddScoped<IPartyProfileRepository, PartyProfileRepository>();
             services.AddScoped<IProfileQueryRepository, ProfileQueryRepository>();
             services.AddScoped<IPostRepository, PostRepository>();
+            services.AddScoped<IPostNotificationRepository, PostNotificationRepository>();
             services.AddScoped<ICommentRepository, CommentRepository>();
+            services.AddScoped<INotificationQueryRepository, NotificationQueryRepository>();
 
             return services;
         }
