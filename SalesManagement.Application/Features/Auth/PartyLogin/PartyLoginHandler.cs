@@ -9,15 +9,18 @@ namespace SalesManagement.Application.Features.Auth.PartyLogin
     {
         private readonly IPartyRepository _partyRepository;
         private readonly ITokenGenerator _tokenGenerator;
+        private readonly ILoginAttemptTracker _attemptTracker;
         private readonly ILogger<PartyLoginHandler> _logger;
 
         public PartyLoginHandler(
             IPartyRepository partyRepository,
             ITokenGenerator tokenGenerator,
+            ILoginAttemptTracker attemptTracker,
             ILogger<PartyLoginHandler> logger)
         {
             _partyRepository = partyRepository;
             _tokenGenerator = tokenGenerator;
+            _attemptTracker = attemptTracker;
             _logger = logger;
         }
 
@@ -30,16 +33,28 @@ namespace SalesManagement.Application.Features.Auth.PartyLogin
             var phone = command.Phone.Trim();
             var nationalCode = command.NationalCode.Trim();
 
+            var lockRemaining = _attemptTracker.GetLockRemaining(phone);
+            if (lockRemaining is not null)
+            {
+                var seconds = (int)Math.Ceiling(lockRemaining.Value.TotalSeconds);
+                _logger.LogWarning("ورود مسدود (تلاش ناموفق زیاد) برای شماره: {Phone}", Mask(phone));
+                throw new TooManyRequestsException(
+                    $"به دلیل تلاش ناموفق زیاد، ورود موقتاً مسدود است. {seconds} ثانیه‌ی دیگر دوباره تلاش کنید", seconds);
+            }
+
             var party = await _partyRepository.GetByPhoneAndNationalCodeAsync(
                 phone, nationalCode, cancellationToken);
 
             if (party is null)
             {
+                _attemptTracker.RegisterFailure(phone);
                 _logger.LogWarning("تلاش ورود ناموفق برای شماره: {Phone}", Mask(phone));
                 throw new AuthenticationException("شماره تماس یا کد ملی اشتباه است");
             }
 
             party.EnsureCanLogin();
+
+            _attemptTracker.Reset(phone);
 
             var accessToken = _tokenGenerator.GenerateAccessToken(party.PartyId, phone);
 

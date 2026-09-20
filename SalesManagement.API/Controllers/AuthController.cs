@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using SalesManagement.API.Common;
 using SalesManagement.API.Features.Auth.PartyLogin;
 using SalesManagement.Application.Features.Auth.PartyLogin;
+using SalesManagement.Application.Features.Auth.Logout;
+using SalesManagement.Application.Features.Auth.RefreshToken;
 
 namespace SalesManagement.API.Controllers
 {
@@ -13,9 +15,47 @@ namespace SalesManagement.API.Controllers
     {
         private readonly PartyLoginHandler _partyLoginHandler;
 
-        public AuthController(PartyLoginHandler partyLoginHandler)
+        private readonly RefreshTokenHandler _refreshTokenHandler;
+
+        private readonly LogoutHandler _logoutHandler;
+
+        public AuthController(
+            PartyLoginHandler partyLoginHandler, RefreshTokenHandler refreshTokenHandler, LogoutHandler logoutHandler)
         {
             _partyLoginHandler = partyLoginHandler;
+            _refreshTokenHandler = refreshTokenHandler;
+            _logoutHandler = logoutHandler;
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+        {
+            var jti = User.FindFirst("jti")?.Value;
+            DateTimeOffset? expiresAt = long.TryParse(User.FindFirst("exp")?.Value, out var exp)
+                ? DateTimeOffset.FromUnixTimeSeconds(exp)
+                : null;
+
+            await _logoutHandler.Handle(new LogoutCommand(jti, expiresAt), cancellationToken);
+
+            return NoContent();
+        }
+
+        [HttpPost("refresh")]
+        [Authorize]
+        [ProducesResponseType(typeof(PartyLoginResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<PartyLoginResponse>> Refresh(CancellationToken cancellationToken)
+        {
+            var phone = User.FindFirst("phone")?.Value ?? "";
+            var result = await _refreshTokenHandler.Handle(
+                new RefreshTokenCommand(User.GetPartyId(), phone), cancellationToken);
+
+            return Ok(new PartyLoginResponse(
+                result.AccessToken, result.ExpiresInSeconds, result.PartyId, result.FullName));
         }
 
         [HttpPost("tokens")]

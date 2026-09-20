@@ -14,7 +14,7 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
 {
     public class CustomerRepository(
         ISepidarConnectionFactory sepidarFactory,
-        ISepidyarhesabConnectionFactory hesabFactory,
+        IZanisServicesConnectionFactory hesabFactory,
         ISepidarConfigurationProvider configProvider) : ICustomerRepository
     {
         private const string SqlContext = """
@@ -47,13 +47,13 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                  IsInBlacklist, IsVendor, IsBroker, IsEmployee, IsCustomer, CustomerCategoryForTax,
                  Version, Creator, CreationDate, LastModifier, LastModificationDate,
                  HasCredit, CreditCheckingType, DiscountRate, CommissionRate, BrokerOpeningBalance,
-                 Email, CustomerGroupingRef)
+                 BrokerOpeningBalanceType, Email, CustomerGroupingRef)
             VALUES
                 (@PartyId, @Type, @SubType, @Name, @LastName, @Name_En, @LastName_En, @IdentificationCode, @DLRef,
                  @IsInBlacklist, @IsVendor, @IsBroker, @IsEmployee, @IsCustomer, @CustomerCategoryForTax,
                  @Version, @Creator, @CreationDate, @LastModifier, @LastModificationDate,
                  @HasCredit, @CreditCheckingType, @DiscountRate, @CommissionRate, @BrokerOpeningBalance,
-                 @Email, @CustomerGroupingRef);
+                 @BrokerOpeningBalanceType, @Email, @CustomerGroupingRef);
             """;
 
         private const string SqlInsertPhone = """
@@ -207,7 +207,8 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 pParty.Add("@CreditCheckingType", 3);
                 pParty.Add("@DiscountRate", 0);
                 pParty.Add("@CommissionRate", 0);
-                pParty.Add("@BrokerOpeningBalance", 0);
+                pParty.Add("@BrokerOpeningBalance", null);
+                pParty.Add("@BrokerOpeningBalanceType", 2);
                 pParty.Add("@Email", null);
                 pParty.Add("@CustomerGroupingRef", ctx.CustomerGroupingRef);
                 await sepidar.ExecuteAsync(SqlInsertParty, pParty, tx);

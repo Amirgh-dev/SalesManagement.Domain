@@ -25,6 +25,11 @@ namespace SalesManagement.API.Common.Middlewares
             {
                 await WriteProblem(context, HttpStatusCode.Unauthorized, "خطای احراز هویت", ex.Message);
             }
+            catch (TooManyRequestsException ex)
+            {
+                context.Response.Headers.RetryAfter = ex.RetryAfterSeconds.ToString();
+                await WriteProblem(context, HttpStatusCode.TooManyRequests, "تعداد تلاش زیاد", ex.Message);
+            }
             catch (ForbiddenException ex)
             {
                 await WriteProblem(context, HttpStatusCode.Forbidden, "دسترسی غیرمجاز", ex.Message);

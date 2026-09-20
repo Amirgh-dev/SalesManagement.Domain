@@ -10,6 +10,7 @@ using SalesManagement.Application.Features.PartyProfiles.QueryProfiles;
 using SalesManagement.Application.Features.PartyProfiles.SavePartyProfile;
 using SalesManagement.Application.Features.Posts.CreateComment;
 using SalesManagement.Application.Features.Posts.CreatePost;
+using SalesManagement.Application.Features.Posts.LikePost;
 using SalesManagement.Application.Features.Notifications.GetNotifications;
 using SalesManagement.Infrastructure;
 using SalesManagement.Persistence;
@@ -19,16 +20,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<SalesManagement.Domain.Features.Auth.PartyLogin.ILoginAttemptTracker, SalesManagement.Domain.Features.Auth.PartyLogin.LoginAttemptTracker>();
 builder.Services.AddScoped<PartyLoginHandler>();
+builder.Services.AddScoped<SalesManagement.Application.Features.Auth.RefreshToken.RefreshTokenHandler>();
+builder.Services.AddScoped<SalesManagement.Application.Features.Auth.Logout.LogoutHandler>();
 builder.Services.AddScoped<QueryItemsHandler>();
 builder.Services.AddScoped<QueryQuotationsHandler>();
 builder.Services.AddScoped<QueryInvoicesHandler>();
 builder.Services.AddScoped<CreateCustomerHandler>();
 builder.Services.AddScoped<GetLocationsHandler>();
 builder.Services.AddScoped<SavePartyProfileHandler>();
+builder.Services.AddScoped<SalesManagement.Application.Features.PartyProfiles.SaveProfilePhoto.SaveProfilePhotoHandler>();
 builder.Services.AddScoped<QueryProfilesHandler>();
 builder.Services.AddScoped<CreatePostHandler>();
 builder.Services.AddScoped<CreateCommentHandler>();
+builder.Services.AddScoped<LikePostHandler>();
+builder.Services.AddScoped<SalesManagement.Application.Features.Professors.CreateProfessor.CreateProfessorHandler>();
+builder.Services.AddScoped<SalesManagement.Application.Features.Courses.SaveCourse.SaveCourseHandler>();
 builder.Services.AddScoped<GetNotificationsHandler>();
 builder.Services.AddApiServices(builder.Configuration);
 
@@ -36,12 +45,10 @@ var app = builder.Build();
 
 app.UseResponseCompression();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-else
+app.UseSwagger();
+app.UseSwaggerUI();
+
+if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
 }

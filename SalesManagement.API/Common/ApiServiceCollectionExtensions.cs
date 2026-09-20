@@ -42,7 +42,7 @@ namespace SalesManagement.API.Common
                         partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                         factory: _ => new FixedWindowRateLimiterOptions
                         {
-                            PermitLimit = 5,
+                            PermitLimit = 20,
                             Window = TimeSpan.FromMinutes(1),
                             QueueLimit = 0
                         }));
@@ -78,6 +78,21 @@ namespace SalesManagement.API.Common
                         ValidAudience = jwtSettings.Audience,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
                         ClockSkew = TimeSpan.FromMinutes(1)
+                    };
+
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
+                        {
+                            var jti = context.Principal?.FindFirst("jti")?.Value;
+                            if (jti is null) return;
+
+                            var store = context.HttpContext.RequestServices
+                                .GetRequiredService<SalesManagement.Domain.Features.Auth.PartyLogin.IRevokedTokenStore>();
+
+                            if (await store.IsRevokedAsync(jti, context.HttpContext.RequestAborted))
+                                context.Fail("توکن باطل شده است");
+                        }
                     };
                 });
 

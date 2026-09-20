@@ -7,7 +7,7 @@ using SalesManagement.Domain.Features.PartyProfiles;
 
 namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
 {
-    public class ProfileQueryRepository(ISepidyarhesabConnectionFactory connectionFactory)
+    public class ProfileQueryRepository(IZanisServicesConnectionFactory connectionFactory)
         : IProfileQueryRepository
     {
         private const string PostCountExpr =

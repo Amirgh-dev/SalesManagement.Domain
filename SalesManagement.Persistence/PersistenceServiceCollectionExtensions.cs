@@ -19,6 +19,7 @@ using SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles;
 using SalesManagement.Domain.Features.Posts;
 using SalesManagement.Persistence.Features.Posts.CreatePost;
 using SalesManagement.Persistence.Features.Posts.CreateComment;
+using SalesManagement.Persistence.Features.Posts.LikePost;
 using SalesManagement.Domain.Features.Notifications;
 using SalesManagement.Persistence.Features.Notifications.GetNotifications;
 
@@ -31,6 +32,8 @@ namespace SalesManagement.Persistence
         {
             services.AddSingleton<ISepidarConnectionFactory, SepidarConnectionFactory>();
             services.AddSingleton<ISepidyarhesabConnectionFactory, SepidyarhesabConnectionFactory>();
+            services.AddSingleton<IZanisServicesConnectionFactory, ZanisServicesConnectionFactory>();
+            services.AddSingleton<SalesManagement.Domain.Features.Auth.PartyLogin.IRevokedTokenStore, SalesManagement.Persistence.Features.Auth.Logout.RevokedTokenStore>();
 
             services.AddScoped<IPartyRepository, PartyRepository>();
             services.AddScoped<IItemQueryRepository, ItemQueryRepository>();
@@ -39,8 +42,12 @@ namespace SalesManagement.Persistence
             services.AddScoped<ILocationRepository, LocationRepository>();
             services.AddScoped<IInvoiceQueryRepository, InvoiceQueryRepository>();
             services.AddScoped<IPartyProfileRepository, PartyProfileRepository>();
+            services.AddScoped<SalesManagement.Domain.Features.PartyProfiles.IProfilePhotoRepository, SalesManagement.Persistence.Features.PartyProfiles.SaveProfilePhoto.ProfilePhotoRepository>();
             services.AddScoped<IProfileQueryRepository, ProfileQueryRepository>();
             services.AddScoped<IPostRepository, PostRepository>();
+            services.AddScoped<IPostLikeRepository, PostLikeRepository>();
+            services.AddScoped<SalesManagement.Domain.Features.Professors.IProfessorRepository, SalesManagement.Persistence.Features.Professors.CreateProfessor.ProfessorRepository>();
+            services.AddScoped<SalesManagement.Domain.Features.Courses.ICourseRepository, SalesManagement.Persistence.Features.Courses.SaveCourse.CourseRepository>();
             services.AddScoped<IPostNotificationRepository, PostNotificationRepository>();
             services.AddScoped<ICommentRepository, CommentRepository>();
             services.AddScoped<INotificationQueryRepository, NotificationQueryRepository>();

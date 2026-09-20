@@ -5,7 +5,9 @@ using SalesManagement.Domain.Features.Posts;
 
 namespace SalesManagement.Persistence.Features.Posts.CreatePost
 {
-    public class PostNotificationRepository(ISepidyarhesabConnectionFactory connectionFactory)
+    public class PostNotificationRepository(
+        IZanisServicesConnectionFactory zanisServicesFactory,
+        ISepidyarhesabConnectionFactory hesabFactory)
         : IPostNotificationRepository
     {
         public const string BroadcastCode = "SP-1002";
@@ -31,10 +33,10 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
         public async Task NotifyProvinceOfUrgentPostAsync(
             Guid profileRef, CancellationToken cancellationToken = default)
         {
-            await using var connection = (DbConnection)connectionFactory.CreateConnection();
-            await connection.OpenAsync(cancellationToken);
+            await using var zanisServices = (DbConnection)zanisServicesFactory.CreateConnection();
+            await zanisServices.OpenAsync(cancellationToken);
 
-            var profile = await connection.QueryFirstOrDefaultAsync<ProfileRow>(
+            var profile = await zanisServices.QueryFirstOrDefaultAsync<ProfileRow>(
                 new CommandDefinition(SqlSelectProfile, new { ProfileRef = profileRef }, cancellationToken: cancellationToken));
 
             // no address on file for this profile -> no province to broadcast into, nothing to write
@@ -43,7 +45,10 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
 
             var note = $"توسط کاربر {profile.UserName} یک پست فوری کی داره در استان شما منتشر کرد";
 
-            await connection.ExecuteAsync(new CommandDefinition(
+            await using var hesab = (DbConnection)hesabFactory.CreateConnection();
+            await hesab.OpenAsync(cancellationToken);
+
+            await hesab.ExecuteAsync(new CommandDefinition(
                 SqlInsertBroadcastNotification,
                 new
                 {

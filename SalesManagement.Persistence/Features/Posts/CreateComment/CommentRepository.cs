@@ -6,7 +6,7 @@ using SalesManagement.Domain.Features.Posts;
 
 namespace SalesManagement.Persistence.Features.Posts.CreateComment
 {
-    public class CommentRepository(ISepidyarhesabConnectionFactory connectionFactory) : ICommentRepository
+    public class CommentRepository(IZanisServicesConnectionFactory connectionFactory) : ICommentRepository
     {
         private const string SqlProfileGuard = """
             SELECT TOP (1) IsBlackList

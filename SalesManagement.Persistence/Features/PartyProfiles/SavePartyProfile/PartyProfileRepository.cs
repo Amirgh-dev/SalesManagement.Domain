@@ -7,7 +7,7 @@ using SalesManagement.Domain.Features.PartyProfiles;
 namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
 {
     public class PartyProfileRepository(
-        ISepidyarhesabConnectionFactory connectionFactory,
+        IZanisServicesConnectionFactory connectionFactory,
         ISepidarConnectionFactory sepidarFactory)
         : IPartyProfileRepository
     {

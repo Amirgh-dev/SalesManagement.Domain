@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="Enums\UnregisteredCheckOrSignedDocumentsStep.cs" />
+  </ItemGroup>
+
 </Project>

@@ -7,7 +7,7 @@ using SalesManagement.Domain.Features.Posts;
 
 namespace SalesManagement.Persistence.Features.Posts.CreatePost
 {
-    public class PostRepository(ISepidyarhesabConnectionFactory connectionFactory) : IPostRepository
+    public class PostRepository(IZanisServicesConnectionFactory connectionFactory) : IPostRepository
     {
         private const string SqlProfileGuard = """
             SELECT TOP (1) IsBlackList
