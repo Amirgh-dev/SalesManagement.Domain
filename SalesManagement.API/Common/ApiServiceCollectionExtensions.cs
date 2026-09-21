@@ -20,6 +20,8 @@ namespace SalesManagement.API.Common
             services.AddJwtAuthentication(configuration);
             services.AddAuthorization();
 
+            services.AddCorsPolicy(configuration);
+
             services.AddControllers();
             services.AddEndpointsApiExplorer();
             services.AddSwaggerWithBearer();
@@ -47,6 +49,31 @@ namespace SalesManagement.API.Common
                             QueueLimit = 0
                         }));
             });
+
+            return services;
+        }
+
+        public const string CorsPolicyName = "frontend";
+
+        private static IServiceCollection AddCorsPolicy(
+            this IServiceCollection services, IConfiguration configuration)
+        {
+            var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                ?.Where(o => !string.IsNullOrWhiteSpace(o))
+                .Select(o => o.Trim().TrimEnd('/'))
+                .ToArray() ?? [];
+
+            services.AddCors(options => options.AddPolicy(CorsPolicyName, policy =>
+            {
+                if (origins.Length == 0)
+                    policy.AllowAnyOrigin();
+                else
+                    policy.WithOrigins(origins);
+
+                policy.AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .WithExposedHeaders("Retry-After");
+            }));
 
             return services;
         }
@@ -84,8 +111,7 @@ namespace SalesManagement.API.Common
                     {
                         OnTokenValidated = async context =>
                         {
-                            var jti = context.Principal?.FindFirst("jti")?.Value;
-                            if (jti is null) return;
+                            if (!Guid.TryParse(context.Principal?.FindFirst("jti")?.Value, out var jti)) return;
 
                             var store = context.HttpContext.RequestServices
                                 .GetRequiredService<SalesManagement.Domain.Features.Auth.PartyLogin.IRevokedTokenStore>();

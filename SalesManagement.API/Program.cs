@@ -53,6 +53,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseCors(ApiServiceCollectionExtensions.CorsPolicyName);
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseRateLimiter();

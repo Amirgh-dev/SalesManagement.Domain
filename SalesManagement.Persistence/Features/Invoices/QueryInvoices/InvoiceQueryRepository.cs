@@ -20,6 +20,8 @@ namespace SalesManagement.Persistence.Features.Invoices.QueryInvoices
                 ["date"] = ("i.Date", Kind.DateTime),
                 ["customerPartyRef"] = ("i.CustomerPartyRef", Kind.Int),
                 ["customerName"] = ("i.CustomerRealName", Kind.String),
+                ["saleTypeRef"] = ("i.SaleTypeRef", Kind.Int),
+                ["saleTypeTitle"] = ("(SELECT st.Title FROM SLS.SaleType AS st WHERE st.SaleTypeId = i.SaleTypeRef)", Kind.String),
                 ["price"] = ("i.Price", Kind.Decimal),
                 ["discount"] = ("i.Discount", Kind.Decimal),
                 ["tax"] = ("i.Tax", Kind.Decimal),

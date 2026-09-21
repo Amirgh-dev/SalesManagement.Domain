@@ -10,12 +10,12 @@ namespace SalesManagement.Application.Features.Auth.Logout
     {
         public async Task Handle(LogoutCommand command, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(command.Jti) || command.ExpiresAt is null)
+            if (!Guid.TryParse(command.Jti, out var jti) || command.ExpiresAt is null)
                 throw new AuthenticationException("توکن نامعتبر است");
 
-            await revokedTokenStore.RevokeAsync(command.Jti, command.ExpiresAt.Value, cancellationToken);
+            await revokedTokenStore.RevokeAsync(jti, command.ExpiresAt.Value, cancellationToken);
 
-            logger.LogInformation("خروج کاربر؛ توکن {Jti} باطل شد", command.Jti);
+            logger.LogInformation("خروج کاربر؛ توکن {Jti} باطل شد", jti);
         }
     }
 }

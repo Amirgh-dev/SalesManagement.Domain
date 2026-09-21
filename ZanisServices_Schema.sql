@@ -329,5 +329,5 @@ ALTER TABLE [dbo].[CourseBuyersItem] CHECK CONSTRAINT [FK_CourseBuyersItem_Cours
 GO
 
 IF OBJECT_ID(N'dbo.RevokedTokens') IS NULL
-    CREATE TABLE dbo.RevokedTokens (Jti nvarchar(50) NOT NULL CONSTRAINT PK_RevokedTokens PRIMARY KEY, ExpiresAt datetime NOT NULL);
+    CREATE TABLE dbo.RevokedTokens (Jti uniqueidentifier NOT NULL CONSTRAINT PK_RevokedTokens PRIMARY KEY, ExpiresAt datetime NOT NULL);
 GO

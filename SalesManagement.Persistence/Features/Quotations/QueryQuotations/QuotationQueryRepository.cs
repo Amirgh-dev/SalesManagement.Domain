@@ -20,6 +20,8 @@ namespace SalesManagement.Persistence.Features.Quotations.QueryQuotations
                 ["expirationDate"] = ("q.ExpirationDate", Kind.DateTime),
                 ["customerPartyRef"] = ("q.CustomerPartyRef", Kind.Int),
                 ["customerName"] = ("q.CustomerRealName", Kind.String),
+                ["saleTypeRef"] = ("q.SaleTypeRef", Kind.Int),
+                ["saleTypeTitle"] = ("(SELECT st.Title FROM SLS.SaleType AS st WHERE st.SaleTypeId = q.SaleTypeRef)", Kind.String),
                 ["price"] = ("q.Price", Kind.Decimal),
                 ["discount"] = ("q.Discount", Kind.Decimal),
                 ["tax"] = ("q.Tax", Kind.Decimal),
