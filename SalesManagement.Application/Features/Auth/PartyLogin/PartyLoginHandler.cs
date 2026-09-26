@@ -10,17 +10,20 @@ namespace SalesManagement.Application.Features.Auth.PartyLogin
         private readonly IPartyRepository _partyRepository;
         private readonly ITokenGenerator _tokenGenerator;
         private readonly ILoginAttemptTracker _attemptTracker;
+        private readonly ProfilePhotoUrlResolver _photoUrlResolver;
         private readonly ILogger<PartyLoginHandler> _logger;
 
         public PartyLoginHandler(
             IPartyRepository partyRepository,
             ITokenGenerator tokenGenerator,
             ILoginAttemptTracker attemptTracker,
+            ProfilePhotoUrlResolver photoUrlResolver,
             ILogger<PartyLoginHandler> logger)
         {
             _partyRepository = partyRepository;
             _tokenGenerator = tokenGenerator;
             _attemptTracker = attemptTracker;
+            _photoUrlResolver = photoUrlResolver;
             _logger = logger;
         }
 
@@ -62,7 +65,8 @@ namespace SalesManagement.Application.Features.Auth.PartyLogin
 
             return new PartyLoginResult(
                 accessToken, _tokenGenerator.AccessTokenExpirationSeconds,
-                party.PartyId, party.FullName);
+                party.PartyId, party.FullName,
+                await _photoUrlResolver.GetAsync(party.PartyId, cancellationToken));
         }
 
         private static string Mask(string phone) =>

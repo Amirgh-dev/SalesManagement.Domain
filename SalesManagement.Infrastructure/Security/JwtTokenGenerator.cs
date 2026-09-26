@@ -20,11 +20,15 @@ namespace SalesManagement.Infrastructure.Security
 
         public string GenerateAccessToken(int partyId, string phone)
         {
+            var now = DateTime.UtcNow;
+
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, partyId.ToString()),
                 new Claim("phone", phone),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat,
+                    new DateTimeOffset(now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
@@ -34,7 +38,7 @@ namespace SalesManagement.Infrastructure.Security
                 issuer: _settings.Issuer,
                 audience: _settings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(_settings.AccessTokenExpirationMinutes),
+                expires: now.AddMinutes(_settings.AccessTokenExpirationMinutes),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

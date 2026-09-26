@@ -17,10 +17,26 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SaveProfilePhoto
 
         private const string SqlInsertPartyFile = """
             INSERT INTO dbo.PartyFile (Id, PartyRef, ProfileRef, FileName, FileExtensions, IsOk, IsMain, Tables)
-            VALUES (@Id, @PartyRef, @ProfileRef, @FileName, @FileExtensions, 1, 1, 'ProfileParty');
+            VALUES (@Id, @PartyRef, @ProfileRef, @FileName, @FileExtensions, 1, 1, 'Profile');
             """;
 
-        public async Task<string?> ReplaceMainPhotoAsync(
+        private const string SqlSelectMainPhotoPath = """
+            SELECT TOP (1) f.Path
+            FROM dbo.ProfileParty AS p
+                JOIN dbo.PartyFile AS f ON f.ProfileRef = p.Id AND f.IsMain = 1
+            WHERE p.PartyRef = @PartyRef;
+            """;
+
+        public async Task<string?> GetMainPhotoPathAsync(int partyRef, CancellationToken cancellationToken = default)
+        {
+            await using var connection = (DbConnection)connectionFactory.CreateConnection();
+            await connection.OpenAsync(cancellationToken);
+
+            return await connection.QueryFirstOrDefaultAsync<string?>(new CommandDefinition(
+                SqlSelectMainPhotoPath, new { PartyRef = partyRef }, cancellationToken: cancellationToken));
+        }
+
+        public async Task<ReplacedPhoto> ReplaceMainPhotoAsync(
             int partyRef, string fileName, CancellationToken cancellationToken = default)
         {
             await using var connection = (DbConnection)connectionFactory.CreateConnection();
@@ -43,9 +59,10 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SaveProfilePhoto
                 var ext = Path.GetExtension(fileName);
                 if (ext.Length > 5) ext = ext[..5];
 
+                var newPhotoId = Guid.NewGuid();
                 await connection.ExecuteAsync(SqlInsertPartyFile, new
                 {
-                    Id = Guid.NewGuid(),
+                    Id = newPhotoId,
                     PartyRef = partyRef,
                     ProfileRef = profileId,
                     FileName = fileName,
@@ -53,7 +70,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SaveProfilePhoto
                 }, tx);
 
                 await tx.CommitAsync(cancellationToken);
-                return existing.Select(p => p.FileName).FirstOrDefault();
+                return new ReplacedPhoto(newPhotoId, existing.Select(p => p.FileName).FirstOrDefault());
             }
             catch
             {

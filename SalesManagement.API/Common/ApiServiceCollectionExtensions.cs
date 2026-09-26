@@ -22,7 +22,8 @@ namespace SalesManagement.API.Common
 
             services.AddCorsPolicy(configuration);
 
-            services.AddControllers();
+            services.AddControllers()
+                .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ValidationProblemFactory.Create);
             services.AddEndpointsApiExplorer();
             services.AddSwaggerWithBearer();
             services.AddProblemDetails();
@@ -72,7 +73,7 @@ namespace SalesManagement.API.Common
 
                 policy.AllowAnyHeader()
                       .AllowAnyMethod()
-                      .WithExposedHeaders("Retry-After");
+                      .WithExposedHeaders("Retry-After", "X-New-Token");
             }));
 
             return services;
@@ -117,8 +118,51 @@ namespace SalesManagement.API.Common
                                 .GetRequiredService<SalesManagement.Domain.Features.Auth.PartyLogin.IRevokedTokenStore>();
 
                             if (await store.IsRevokedAsync(jti, context.HttpContext.RequestAborted))
+                            {
                                 context.Fail("توکن باطل شده است");
-                        }
+                                return;
+                            }
+
+                            var iatValue = context.Principal?.FindFirst(
+                                System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Iat)?.Value;
+                            if (!long.TryParse(iatValue, out var iatUnixSeconds))
+                                iatUnixSeconds = 0;
+
+                            var issuedAt = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds).UtcDateTime;
+                            var elapsedSinceIssued = DateTime.UtcNow - issuedAt;
+                            if (elapsedSinceIssued < TimeSpan.FromMinutes(jwtSettings.RefreshIntervalMinutes))
+                                return;
+
+                            var sub = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                                      ?? context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+                            var phone = context.Principal?.FindFirst("phone")?.Value;
+                            if (!int.TryParse(sub, out var partyId) || string.IsNullOrEmpty(phone))
+                                return;
+
+                            var tokenGenerator = context.HttpContext.RequestServices
+                                .GetRequiredService<SalesManagement.Application.Common.Interfaces.ITokenGenerator>();
+
+                            context.HttpContext.Response.Headers["X-New-Token"] = tokenGenerator.GenerateAccessToken(partyId, phone);
+                        },
+                        OnChallenge = async context =>
+                        {
+                            context.HandleResponse();
+
+                            var detail = context.AuthenticateFailure switch
+                            {
+                                Microsoft.IdentityModel.Tokens.SecurityTokenExpiredException =>
+                                    "توکن منقضی شده است، دوباره وارد شوید",
+                                { } => "توکن نامعتبر است",
+                                null => "برای این عملیات ابتدا باید وارد شوید",
+                            };
+
+                            await ProblemResponseWriter.WriteAsync(
+                                context.HttpContext, System.Net.HttpStatusCode.Unauthorized, "خطای احراز هویت", detail);
+                        },
+                        OnForbidden = context =>
+                            ProblemResponseWriter.WriteAsync(
+                                context.HttpContext, System.Net.HttpStatusCode.Forbidden,
+                                "دسترسی غیرمجاز", "شما اجازه‌ی انجام این عملیات را ندارید"),
                     };
                 });
 

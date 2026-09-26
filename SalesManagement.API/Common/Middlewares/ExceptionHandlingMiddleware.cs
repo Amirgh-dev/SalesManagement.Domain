@@ -1,5 +1,5 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using SalesManagement.Domain.Common.Exceptions;
 
 namespace SalesManagement.API.Common.Middlewares
@@ -23,46 +23,47 @@ namespace SalesManagement.API.Common.Middlewares
             }
             catch (AuthenticationException ex)
             {
-                await WriteProblem(context, HttpStatusCode.Unauthorized, "خطای احراز هویت", ex.Message);
+                await ProblemResponseWriter.WriteAsync(context, HttpStatusCode.Unauthorized, "خطای احراز هویت", ex.Message);
             }
             catch (TooManyRequestsException ex)
             {
                 context.Response.Headers.RetryAfter = ex.RetryAfterSeconds.ToString();
-                await WriteProblem(context, HttpStatusCode.TooManyRequests, "تعداد تلاش زیاد", ex.Message);
+                await ProblemResponseWriter.WriteAsync(context, HttpStatusCode.TooManyRequests, "تعداد تلاش زیاد", ex.Message);
             }
             catch (ForbiddenException ex)
             {
-                await WriteProblem(context, HttpStatusCode.Forbidden, "دسترسی غیرمجاز", ex.Message);
+                await ProblemResponseWriter.WriteAsync(context, HttpStatusCode.Forbidden, "دسترسی غیرمجاز", ex.Message);
+            }
+            catch (ConflictException ex)
+            {
+                await ProblemResponseWriter.WriteAsync(context, HttpStatusCode.Conflict, "تکراری", ex.Message);
             }
             catch (NotFoundException ex)
             {
-                await WriteProblem(context, HttpStatusCode.NotFound, "پیدا نشد", ex.Message);
+                await ProblemResponseWriter.WriteAsync(context, HttpStatusCode.NotFound, "پیدا نشد", ex.Message);
             }
             catch (DomainException ex)
             {
-                await WriteProblem(context, HttpStatusCode.BadRequest, "درخواست نامعتبر", ex.Message);
+                await ProblemResponseWriter.WriteAsync(context, HttpStatusCode.BadRequest, "درخواست نامعتبر", ex.Message);
+            }
+            catch (BadHttpRequestException ex)
+            {
+                var detail = ex.StatusCode == StatusCodes.Status413PayloadTooLarge
+                    ? "حجم درخواست بیش از حد مجاز است"
+                    : "درخواست نامعتبر است";
+                await ProblemResponseWriter.WriteAsync(context, (HttpStatusCode)ex.StatusCode, "درخواست نامعتبر", detail);
+            }
+            catch (InvalidDataException ex) when (ex.Message.Contains("Multipart body length limit"))
+            {
+                await ProblemResponseWriter.WriteAsync(
+                    context, HttpStatusCode.RequestEntityTooLarge, "درخواست نامعتبر", "حجم فایل‌های ارسالی بیش از حد مجاز است");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "خطای غیرمنتظره در {Path}", context.Request.Path);
-                await WriteProblem(context, HttpStatusCode.InternalServerError, "خطای داخلی سرور", "خطای داخلی سرور");
+                await ProblemResponseWriter.WriteAsync(
+                    context, HttpStatusCode.InternalServerError, "خطای داخلی سرور", "خطای داخلی سرور");
             }
-        }
-
-        private static Task WriteProblem(
-            HttpContext context, HttpStatusCode statusCode, string title, string detail)
-        {
-            var problem = new ProblemDetails
-            {
-                Status = (int)statusCode,
-                Title = title,
-                Detail = detail,
-                Instance = context.Request.Path
-            };
-
-            context.Response.StatusCode = problem.Status.Value;
-            context.Response.ContentType = "application/problem+json";
-            return context.Response.WriteAsJsonAsync(problem);
         }
     }
 }

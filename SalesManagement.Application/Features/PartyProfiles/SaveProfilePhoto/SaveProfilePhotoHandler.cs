@@ -1,16 +1,18 @@
 using Microsoft.Extensions.Logging;
 using SalesManagement.Application.Common.Interfaces;
+using SalesManagement.Domain.Common;
 using SalesManagement.Domain.Features.PartyProfiles;
 
 namespace SalesManagement.Application.Features.PartyProfiles.SaveProfilePhoto
 {
     public record SaveProfilePhotoCommand(int PartyId, Stream Content, string? Extension, long Length);
 
-    public record SaveProfilePhotoResult(string FileName);
+    public record SaveProfilePhotoResult(Guid Id, string FileName, string? Url);
 
     public class SaveProfilePhotoHandler(
         IProfilePhotoRepository photoRepository,
         IFileStorage fileStorage,
+        IMediaUrlBuilder mediaUrlBuilder,
         ILogger<SaveProfilePhotoHandler> logger)
     {
         private const string ProfileFolder = "Profile";
@@ -25,15 +27,17 @@ namespace SalesManagement.Application.Features.PartyProfiles.SaveProfilePhoto
 
             try
             {
-                var oldFileName = await photoRepository.ReplaceMainPhotoAsync(
+                var replaced = await photoRepository.ReplaceMainPhotoAsync(
                     cmd.PartyId, savedFileName, cancellationToken);
 
-                if (oldFileName is not null)
-                    await fileStorage.DeleteAsync(ProfileFolder, oldFileName, CancellationToken.None);
+                if (replaced.OldFileName is not null)
+                    await fileStorage.DeleteAsync(ProfileFolder, replaced.OldFileName, CancellationToken.None);
 
                 logger.LogInformation("عکس پروفایلِ کاربر {PartyRef} تغییر کرد", cmd.PartyId);
 
-                return new SaveProfilePhotoResult(savedFileName);
+                return new SaveProfilePhotoResult(
+                    replaced.NewPhotoId,
+                    savedFileName, mediaUrlBuilder.Build($"/media/images/{ProfileFolder}/{savedFileName}"));
             }
             catch
             {

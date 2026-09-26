@@ -55,7 +55,7 @@ namespace SalesManagement.API.Controllers
                 new RefreshTokenCommand(User.GetPartyId(), phone), cancellationToken);
 
             return Ok(new PartyLoginResponse(
-                result.AccessToken, result.ExpiresInSeconds, result.PartyId, result.FullName));
+                result.AccessToken, result.ExpiresInSeconds, result.PartyId, result.FullName, result.ProfilePhotoUrl));
         }
 
         [HttpPost("tokens")]
@@ -73,7 +73,7 @@ namespace SalesManagement.API.Controllers
 
             return Ok(new PartyLoginResponse(
                 result.AccessToken, result.ExpiresInSeconds,
-                result.PartyId, result.FullName));
+                result.PartyId, result.FullName, result.ProfilePhotoUrl));
         }
     }
 }

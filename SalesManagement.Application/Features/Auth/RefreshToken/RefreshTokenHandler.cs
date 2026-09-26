@@ -11,6 +11,7 @@ namespace SalesManagement.Application.Features.Auth.RefreshToken
     public class RefreshTokenHandler(
         IPartyRepository partyRepository,
         ITokenGenerator tokenGenerator,
+        ProfilePhotoUrlResolver photoUrlResolver,
         ILogger<RefreshTokenHandler> logger)
     {
         public async Task<PartyLoginResult> Handle(
@@ -26,7 +27,8 @@ namespace SalesManagement.Application.Features.Auth.RefreshToken
             logger.LogInformation("تمدید توکن Party: {PartyId}", party.PartyId);
 
             return new PartyLoginResult(
-                accessToken, tokenGenerator.AccessTokenExpirationSeconds, party.PartyId, party.FullName);
+                accessToken, tokenGenerator.AccessTokenExpirationSeconds, party.PartyId, party.FullName,
+                await photoUrlResolver.GetAsync(party.PartyId, cancellationToken));
         }
     }
 }
