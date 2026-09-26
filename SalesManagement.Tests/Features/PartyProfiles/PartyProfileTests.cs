@@ -10,10 +10,32 @@ namespace SalesManagement.Tests.Features.PartyProfiles
             string? userName = "Mahdi",
             string? aboutMe = null,
             string? address = null,
-            string? geolocation = null)
-            => PartyProfile.Create(partyRef, userName, aboutMe, address, geolocation);
+            string? geolocation = null,
+            Guid? id = null)
+            => PartyProfile.Create(id, partyRef, userName, aboutMe, address, geolocation);
 
-        // ---- validation ---------------------------------------------
+        [Fact]
+        public void No_id_is_not_explicit()
+        {
+            Assert.False(Make().HasExplicitId);
+            Assert.Null(Make().Id);
+        }
+
+        [Fact]
+        public void Empty_guid_id_is_not_explicit()
+        {
+            Assert.False(Make(id: Guid.Empty).HasExplicitId);
+            Assert.Null(Make(id: Guid.Empty).Id);
+        }
+
+        [Fact]
+        public void Real_id_is_explicit()
+        {
+            var id = Guid.NewGuid();
+            var p = Make(id: id);
+            Assert.True(p.HasExplicitId);
+            Assert.Equal(id, p.Id);
+        }
 
         [Theory]
         [InlineData(0)]
@@ -37,8 +59,6 @@ namespace SalesManagement.Tests.Features.PartyProfiles
         {
             Assert.Equal("Mahdi", Make(userName: "  Mahdi  ").UserName);
         }
-
-        // ---- aboutMe / address -------------------------------------
 
         [Theory]
         [InlineData(null)]
@@ -69,8 +89,6 @@ namespace SalesManagement.Tests.Features.PartyProfiles
         {
             Assert.Equal("Tehran, Valiasr", Make(address: "  Tehran, Valiasr  ").Address);
         }
-
-        // ---- geolocation ----------------------------------------------
 
         [Theory]
         [InlineData(null)]
@@ -109,8 +127,6 @@ namespace SalesManagement.Tests.Features.PartyProfiles
         {
             Assert.Throws<DomainException>(() => Make(geolocation: geo));
         }
-
-        // ---- photos -----------------------------------------------------
 
         [Fact]
         public void Photos_default_to_null_main_and_empty_gallery()

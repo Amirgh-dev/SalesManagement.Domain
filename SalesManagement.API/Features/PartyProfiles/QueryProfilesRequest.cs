@@ -4,6 +4,8 @@ namespace SalesManagement.API.Features.PartyProfiles
     {
         public string? Id { get; init; }
 
+        public int? PartyRef { get; init; }
+
         public string? Scope { get; init; }
 
         public string? Fields { get; init; }

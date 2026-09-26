@@ -1,7 +1,9 @@
 namespace SalesManagement.Application.Features.PartyProfiles.QueryProfiles
 {
     public record QueryProfilesCommand(
+        int RequesterPartyId,
         Guid? Id,
+        int? PartyRef,
         string? Scope,
         string? Fields,
         string? SearchTerm,

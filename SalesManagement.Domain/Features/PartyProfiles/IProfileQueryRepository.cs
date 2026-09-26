@@ -9,5 +9,7 @@ namespace SalesManagement.Domain.Features.PartyProfiles
               IReadOnlyList<IDictionary<string, object?>>? Provinces,
               IReadOnlyList<IDictionary<string, object?>>? Counties)> QueryAsync(
             ProfileQuery query, CancellationToken cancellationToken = default);
+
+        Task<bool> HasProfileAsync(int partyId, CancellationToken cancellationToken = default);
     }
 }

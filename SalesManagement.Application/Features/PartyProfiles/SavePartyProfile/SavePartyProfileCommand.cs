@@ -2,6 +2,7 @@ namespace SalesManagement.Application.Features.PartyProfiles.SavePartyProfile
 {
     public record SavePartyProfileCommand(
         int PartyId,
+        Guid? Id,
         string? UserName,
         string? AboutMe,
         string? Address,

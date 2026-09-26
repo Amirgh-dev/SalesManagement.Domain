@@ -6,6 +6,7 @@ namespace SalesManagement.Tests.Features.PartyProfiles
     {
         private static ProfileQuery Make(
             Guid? id = null,
+            int? partyRef = null,
             string? scope = null,
             string? fields = null,
             string? searchTerm = null,
@@ -17,9 +18,7 @@ namespace SalesManagement.Tests.Features.PartyProfiles
             int? page = null,
             int? pageSize = null)
             => ProfileQuery.Create(
-                id, scope, fields, searchTerm, searchFields, orderBy, descending, skip, take, page, pageSize);
-
-        // ---- id -------------------------------------------------------
+                id, partyRef, scope, fields, searchTerm, searchFields, orderBy, descending, skip, take, page, pageSize);
 
         [Fact]
         public void Id_null_stays_null()
@@ -40,7 +39,25 @@ namespace SalesManagement.Tests.Features.PartyProfiles
             Assert.Equal(id, Make(id: id).Id);
         }
 
-        // ---- scope ------------------------------------------------------
+        [Fact]
+        public void PartyRef_null_stays_null()
+        {
+            Assert.Null(Make(partyRef: null).PartyRef);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-5)]
+        public void PartyRef_zero_or_negative_becomes_null(int partyRef)
+        {
+            Assert.Null(Make(partyRef: partyRef).PartyRef);
+        }
+
+        [Fact]
+        public void PartyRef_positive_is_kept()
+        {
+            Assert.Equal(7823, Make(partyRef: 7823).PartyRef);
+        }
 
         [Theory]
         [InlineData(null, true, true, true)]
@@ -84,8 +101,6 @@ namespace SalesManagement.Tests.Features.PartyProfiles
             Assert.Equal(ProfileSection.Comments, Make(scope: "comments").Scope.Primary);
         }
 
-        // ---- fields -------------------------------------------------------
-
         [Fact]
         public void Fields_null_gives_empty_list()
         {
@@ -104,8 +119,6 @@ namespace SalesManagement.Tests.Features.PartyProfiles
         {
             Assert.Empty(Make(fields: "string").Fields);
         }
-
-        // ---- search ---------------------------------------------------
 
         [Theory]
         [InlineData(null)]
@@ -137,8 +150,6 @@ namespace SalesManagement.Tests.Features.PartyProfiles
             Assert.Empty(q.Search!.Fields);
         }
 
-        // ---- orderBy / descending -----------------------------------
-
         [Theory]
         [InlineData(null)]
         [InlineData("")]
@@ -161,8 +172,6 @@ namespace SalesManagement.Tests.Features.PartyProfiles
             Assert.True(Make(descending: true).Descending);
             Assert.False(Make(descending: false).Descending);
         }
-
-        // ---- pagination -------------------------------------------
 
         [Fact]
         public void Default_paging_is_skip_0_take_100()

@@ -75,7 +75,7 @@ namespace SalesManagement.API.Controllers
 
                 var result = await _saveHandler.Handle(
                     new SavePartyProfileCommand(
-                        partyId, request.UserName, request.AboutMe, request.Address, request.Geolocation,
+                        partyId, request.Id, request.UserName, request.AboutMe, request.Address, request.Geolocation,
                         mainPhoto, galleryInputs),
                     cancellationToken);
 
@@ -101,7 +101,9 @@ namespace SalesManagement.API.Controllers
 
             var result = await _queryHandler.Handle(
                 new QueryProfilesCommand(
+                    User.GetPartyId(),
                     id,
+                    request.PartyRef,
                     request.Scope, request.Fields,
                     request.Search?.Term, request.Search?.Fields,
                     request.OrderBy, request.Descending,

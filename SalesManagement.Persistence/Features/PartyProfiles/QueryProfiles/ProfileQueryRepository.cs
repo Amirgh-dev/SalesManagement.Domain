@@ -3,11 +3,13 @@ using static SalesManagement.Persistence.Common.PersianText;
 using static SalesManagement.Persistence.Common.DapperRows;
 using System.Data;
 using Dapper;
+using SalesManagement.Domain.Common;
 using SalesManagement.Domain.Features.PartyProfiles;
 
 namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
 {
-    public class ProfileQueryRepository(IZanisServicesConnectionFactory connectionFactory)
+    public class ProfileQueryRepository(
+        IZanisServicesConnectionFactory connectionFactory, IMediaUrlBuilder mediaUrlBuilder)
         : IProfileQueryRepository
     {
         private const string PostCountExpr =
@@ -37,6 +39,15 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
             ) AS addr
             """;
 
+        private const string MobileApply = """
+            OUTER APPLY (
+                SELECT TOP (1) LTRIM(RTRIM(ph.Phone)) AS Phone
+                FROM [Sepidar02].[GNR].[PartyPhone] AS ph
+                WHERE ph.PartyRef = p.PartyRef AND ph.Type = 2 AND ph.IsMain = 1
+                    AND LTRIM(RTRIM(ph.Phone)) LIKE '09[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+            ) AS mobile
+            """;
+
         private const string SqlLocationLookup = """
             SELECT l.LocationId AS [id], l.Title AS [title], l.Type AS [type],
                    pr.LocationId AS [provinceId], pr.Title AS [provinceTitle]
@@ -59,6 +70,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                 ["locationRef"] = "addr.LocationRef",
                 ["rate"] = "p.Rate",
                 ["storeName"] = "e.StoreName",
+                ["phone"] = "mobile.Phone",
                 ["postCount"] = PostCountExpr,
                 ["commentCount"] = CommentCountExpr,
             };
@@ -140,6 +152,20 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
             };
         }
 
+        public async Task<bool> HasProfileAsync(int partyId, CancellationToken cancellationToken = default)
+        {
+            using var connection = connectionFactory.CreateConnection();
+
+            const string sql = """
+                SELECT CASE WHEN EXISTS (
+                    SELECT 1 FROM dbo.ProfileParty WHERE PartyRef = @PartyId
+                ) THEN 1 ELSE 0 END;
+                """;
+
+            return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+                sql, new { PartyId = partyId }, cancellationToken: cancellationToken));
+        }
+
         private async Task<(int, IReadOnlyList<IDictionary<string, object?>>?,
             IReadOnlyList<IDictionary<string, object?>>?, IReadOnlyList<IDictionary<string, object?>>?,
             IReadOnlyList<IDictionary<string, object?>>?, IReadOnlyList<IDictionary<string, object?>>?)>
@@ -164,6 +190,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                         FROM [Sepidar02].[GNR].[PartyAddress] AS a
                         WHERE a.PartyRef = p.PartyRef AND a.IsMain = 1
                     ) AS addr
+                    {MobileApply}
                 WHERE 1 = 1
                     {idClause}
                     {searchClause}
@@ -173,7 +200,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
             var sql = $"""
                 SELECT COUNT(*) {from};
 
-                SELECT {BuildSelect(query.Fields, ProfileFields, "id", "partyRef", "locationRef")}
+                SELECT {BuildSelect(query.Fields, ProfileFields, "id", "partyRef", "locationRef", "storeName", "address", "latitude", "longitude")}
                 {from}
                 ORDER BY {ResolveOrderBy(query, ProfileOrderFields, "p.Rate", "p.Id")}
                 OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;
@@ -293,7 +320,13 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
             return (total, null, null, comments, null, null);
         }
 
-        private static async Task AttachPostPhotosAsync(
+        private void AddUrls(List<IDictionary<string, object?>> photoRows)
+        {
+            foreach (var row in photoRows)
+                row["url"] = row.TryGetValue("path", out var path) ? mediaUrlBuilder.Build(path as string) : null;
+        }
+
+        private async Task AttachPostPhotosAsync(
             IDbConnection connection, List<IDictionary<string, object?>> posts, CancellationToken ct)
         {
             var postIds = GuidKeys(posts, "id");
@@ -313,6 +346,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                 """;
 
             var photos = await ReadRowsAsync(connection, photoSql, new { PostIds = postIds }, ct);
+            AddUrls(photos);
 
             var byPost = photos
                 .GroupBy(r => GuidOf(r, "postRef"))
@@ -324,14 +358,18 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                     : new List<IDictionary<string, object?>>();
         }
 
-        private static async Task AttachProfilePhotosAsync(
+        private async Task AttachProfilePhotosAsync(
             IDbConnection connection, List<IDictionary<string, object?>> profiles, CancellationToken ct)
         {
             var partyRefs = IntKeys(profiles, "partyRef");
             if (partyRefs.Length == 0)
             {
                 foreach (var profile in profiles)
+                {
+                    profile["profilePhotoId"] = null;
+                    profile["profilePhotoUrl"] = null;
                     profile["photos"] = new List<IDictionary<string, object?>>();
+                }
                 return;
             }
 
@@ -344,16 +382,31 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                 """;
 
             var photos = await ReadRowsAsync(connection, photoSql, new { PartyRefs = partyRefs }, ct);
+            AddUrls(photos);
 
             var byParty = photos
                 .GroupBy(r => IntOf(r, "partyRef"))
                 .ToDictionary(gr => gr.Key, gr => gr.ToList());
 
             foreach (var profile in profiles)
-                profile["photos"] = byParty.TryGetValue(IntOf(profile, "partyRef"), out var ps)
-                    ? ps
-                    : new List<IDictionary<string, object?>>();
+            {
+                if (!byParty.TryGetValue(IntOf(profile, "partyRef"), out var ps))
+                {
+                    profile["profilePhotoId"] = null;
+                    profile["profilePhotoUrl"] = null;
+                    profile["photos"] = new List<IDictionary<string, object?>>();
+                    continue;
+                }
+
+                var main = ps.FirstOrDefault(IsMainPhoto);
+                profile["profilePhotoId"] = main?["id"];
+                profile["profilePhotoUrl"] = main?["url"];
+                profile["photos"] = ps.Where(row => !IsMainPhoto(row)).ToList();
+            }
         }
+
+        private static bool IsMainPhoto(IDictionary<string, object?> row) =>
+            row.TryGetValue("isMain", out var v) && v is bool b && b;
 
         private static async Task<(List<IDictionary<string, object?>> Provinces, List<IDictionary<string, object?>> Counties)>
             AttachProvinceCountyAsync(
@@ -366,6 +419,8 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                 {
                     profile["provinceRef"] = null;
                     profile["countyRef"] = null;
+                    profile["provinceTitle"] = null;
+                    profile["countyTitle"] = null;
                 }
                 return ([], []);
             }
@@ -383,6 +438,8 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                 {
                     profile["provinceRef"] = null;
                     profile["countyRef"] = null;
+                    profile["provinceTitle"] = null;
+                    profile["countyTitle"] = null;
                     continue;
                 }
 
@@ -392,6 +449,8 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                 {
                     profile["provinceRef"] = locationRef;
                     profile["countyRef"] = null;
+                    profile["provinceTitle"] = loc["title"];
+                    profile["countyTitle"] = null;
 
                     if (!provinces.ContainsKey(locationRef))
                         provinces[locationRef] = new Dictionary<string, object?>
@@ -405,7 +464,8 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                     var provinceId = IntOf(loc, "provinceId");
                     profile["countyRef"] = locationRef;
                     profile["provinceRef"] = provinceId == 0 ? null : provinceId;
-
+                    profile["provinceTitle"] = provinceId == 0 ? null : loc["provinceTitle"];
+                    profile["countyTitle"] = loc["title"];
                     if (!counties.ContainsKey(locationRef))
                         counties[locationRef] = new Dictionary<string, object?>
                         {
@@ -442,7 +502,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
                 SELECT {BuildSelect(query.Fields, CommentFields, "id", "postRef")}
                 FROM dbo.PartyComment AS c
                 WHERE c.PostRef IN @PostIds
-                ORDER BY c.CreationDate, c.Id;
+                ORDER BY {ResolveCommentOrderBy(query)};
                 """;
 
             var comments = await ReadRowsAsync(connection, commentSql, new { PostIds = postIds }, ct);
@@ -464,7 +524,13 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
             if (query.Id is { } gid)
             {
                 p.Add("@Id", gid);
-                idClause = "AND p.Id = @Id";
+                idClause += "AND p.Id = @Id ";
+            }
+
+            if (query.PartyRef is { } partyRef)
+            {
+                p.Add("@PartyRef", partyRef);
+                idClause += "AND p.PartyRef = @PartyRef ";
             }
 
             return (idClause, BuildSearch(query.Search, p));
@@ -543,16 +609,8 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.QueryProfiles
             return $"{fallbackExpr} {dir}, {tieBreaker} ASC";
         }
 
-        private static string ResolveCommentOrderBy(ProfileQuery query)
-        {
-            var dir = query.Descending ? "DESC" : "ASC";
-            if (query.OrderBy is not null &&
-                (query.OrderBy.Equals("creationDate", StringComparison.OrdinalIgnoreCase) ||
-                 query.OrderBy.Equals("date", StringComparison.OrdinalIgnoreCase)))
-                return $"c.CreationDate {dir}, c.Id ASC";
-
-            return $"c.CreationDate {dir}, c.Id ASC";
-        }
+        private static string ResolveCommentOrderBy(ProfileQuery query) =>
+            $"c.CreationDate {(query.Descending ? "DESC" : "ASC")}, c.Id ASC";
 
         private static Guid[] GuidKeys(IEnumerable<IDictionary<string, object?>> rows, string key) => rows
             .Select(r => GuidOf(r, key))

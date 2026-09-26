@@ -15,7 +15,12 @@ namespace SalesManagement.Application.Features.PartyProfiles.SavePartyProfile
             SavePartyProfileCommand cmd, CancellationToken cancellationToken = default)
         {
             var profile = PartyProfile.Create(
-                cmd.PartyId, cmd.UserName, cmd.AboutMe, cmd.Address, cmd.Geolocation);
+                cmd.Id, cmd.PartyId, cmd.UserName, cmd.AboutMe, cmd.Address, cmd.Geolocation);
+
+            if (cmd.ProfilePhoto is { } mainCheck)
+                ProfilePhotoRules.Validate(mainCheck.Extension, mainCheck.Content.Length);
+            foreach (var (content, extension) in cmd.Photos)
+                ProfilePhotoRules.Validate(extension, content.Length);
 
             var savedFileNames = new List<string>();
 

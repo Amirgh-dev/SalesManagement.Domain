@@ -4,6 +4,7 @@ namespace SalesManagement.API.Features.PartyProfiles
 {
     public class SavePartyProfileRequest
     {
+        public Guid? Id { get; init; }
         [Required][MaxLength(50)] public string UserName { get; init; } = "";
         [MaxLength(500)] public string? AboutMe { get; init; }
         [MaxLength(500)] public string? Address { get; init; }

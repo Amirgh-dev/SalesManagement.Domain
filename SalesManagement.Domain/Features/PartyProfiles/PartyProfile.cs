@@ -5,6 +5,7 @@ namespace SalesManagement.Domain.Features.PartyProfiles
 {
     public sealed record PartyProfile
     {
+        public Guid? Id { get; }
         public int PartyRef { get; }
         public string UserName { get; }
         public string? AboutMe { get; }
@@ -14,10 +15,13 @@ namespace SalesManagement.Domain.Features.PartyProfiles
         public string? ProfilePhotoFileName { get; private init; }
         public IReadOnlyList<string> PhotoFileNames { get; private init; } = [];
 
+        public bool HasExplicitId => Id is not null;
+
         private PartyProfile(
-            int partyRef, string userName, string? aboutMe, string? address,
+            Guid? id, int partyRef, string userName, string? aboutMe, string? address,
             decimal? latitude, decimal? longitude)
         {
+            Id = id;
             PartyRef = partyRef;
             UserName = userName;
             AboutMe = aboutMe;
@@ -27,14 +31,16 @@ namespace SalesManagement.Domain.Features.PartyProfiles
         }
 
         public static PartyProfile Create(
-            int partyRef, string? userName, string? aboutMe, string? address, string? geolocation)
+            Guid? id, int partyRef, string? userName, string? aboutMe, string? address, string? geolocation)
         {
             if (partyRef <= 0) throw new DomainException("شناسه‌ی کاربر نامعتبر است");
             if (string.IsNullOrWhiteSpace(userName)) throw new DomainException("نام کاربری را وارد کنید");
 
             var (lat, lng) = ParseGeolocation(geolocation);
+            var normalizedId = id is null || id == Guid.Empty ? (Guid?)null : id;
 
             return new PartyProfile(
+                normalizedId,
                 partyRef,
                 userName.Trim(),
                 string.IsNullOrWhiteSpace(aboutMe) ? null : aboutMe.Trim(),

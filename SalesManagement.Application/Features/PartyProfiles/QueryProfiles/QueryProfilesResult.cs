@@ -1,6 +1,7 @@
 namespace SalesManagement.Application.Features.PartyProfiles.QueryProfiles
 {
     public sealed record QueryProfilesResult(
+        bool IsAccount,
         int Total,
         IReadOnlyList<IDictionary<string, object?>>? Profiles,
         IReadOnlyList<IDictionary<string, object?>>? Posts,

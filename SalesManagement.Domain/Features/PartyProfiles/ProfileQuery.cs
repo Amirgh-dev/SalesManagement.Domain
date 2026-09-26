@@ -22,6 +22,7 @@ namespace SalesManagement.Domain.Features.PartyProfiles
         public const int MaxTake = 200;
 
         public Guid? Id { get; }
+        public int? PartyRef { get; }
         public ProfileScope Scope { get; }
         public IReadOnlyList<string> Fields { get; }
         public ProfileSearch? Search { get; }
@@ -33,10 +34,11 @@ namespace SalesManagement.Domain.Features.PartyProfiles
         public int? CountyRef { get; }
 
         private ProfileQuery(
-            Guid? id, ProfileScope scope, IReadOnlyList<string> fields, ProfileSearch? search,
+            Guid? id, int? partyRef, ProfileScope scope, IReadOnlyList<string> fields, ProfileSearch? search,
             string? orderBy, bool descending, int skip, int take, int? provinceRef, int? countyRef)
         {
             Id = id;
+            PartyRef = partyRef;
             Scope = scope;
             Fields = fields;
             Search = search;
@@ -50,6 +52,7 @@ namespace SalesManagement.Domain.Features.PartyProfiles
 
         public static ProfileQuery Create(
             Guid? id,
+            int? partyRef,
             string? scope,
             string? fields,
             string? searchTerm,
@@ -64,6 +67,7 @@ namespace SalesManagement.Domain.Features.PartyProfiles
             int? countyRef = null)
         {
             var parsedId = id is { } g && g != Guid.Empty ? g : (Guid?)null;
+            var parsedPartyRef = partyRef is > 0 ? partyRef : null;
 
             var parsedScope = ParseScope(scope);
             var parsedFields = SplitNames(fields);
@@ -86,7 +90,7 @@ namespace SalesManagement.Domain.Features.PartyProfiles
             }
 
             return new ProfileQuery(
-                parsedId, parsedScope, parsedFields, parsedSearch,
+                parsedId, parsedPartyRef, parsedScope, parsedFields, parsedSearch,
                 IsBlankOrPlaceholder(orderBy) ? null : orderBy.Trim(),
                 descending, s, t,
                 provinceRef is > 0 ? provinceRef : null,

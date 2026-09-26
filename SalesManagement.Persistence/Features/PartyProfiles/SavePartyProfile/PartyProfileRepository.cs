@@ -2,6 +2,7 @@ using SalesManagement.Persistence.ConnectionFactories;
 using System.Data.Common;
 using Dapper;
 using static SalesManagement.Persistence.Common.SepidarDb;
+using SalesManagement.Domain.Common.Exceptions;
 using SalesManagement.Domain.Features.PartyProfiles;
 
 namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
@@ -15,6 +16,12 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
             SELECT TOP (1) Id
             FROM dbo.ProfileParty
             WHERE PartyRef = @PartyRef;
+            """;
+
+        private const string SqlSelectByIdForParty = """
+            SELECT TOP (1) Id
+            FROM dbo.ProfileParty
+            WHERE Id = @Id AND PartyRef = @PartyRef;
             """;
 
         private const string SqlInsert = """
@@ -81,8 +88,19 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
 
             try
             {
-                var existingId = await connection.ExecuteScalarAsync<Guid?>(
-                    SqlSelect, new { profile.PartyRef }, tx);
+                Guid? existingId;
+                if (profile.HasExplicitId)
+                {
+                    existingId = await connection.ExecuteScalarAsync<Guid?>(
+                        SqlSelectByIdForParty, new { profile.Id, profile.PartyRef }, tx);
+                    if (existingId is null)
+                        throw new DomainException("پروفایل پیدا نشد");
+                }
+                else
+                {
+                    existingId = await connection.ExecuteScalarAsync<Guid?>(
+                        SqlSelect, new { profile.PartyRef }, tx);
+                }
 
                 var p = new DynamicParameters();
                 p.Add("@PartyRef", profile.PartyRef);
@@ -202,7 +220,7 @@ namespace SalesManagement.Persistence.Features.PartyProfiles.SavePartyProfile
             p.Add("@FileExtensions", ext);
             p.Add("@IsOk", true);
             p.Add("@IsMain", isMain);
-            p.Add("@Tables", "ProfileParty");
+            p.Add("@Tables", "Profile");
             await connection.ExecuteAsync(SqlInsertPartyFile, p, tx);
         }
 
