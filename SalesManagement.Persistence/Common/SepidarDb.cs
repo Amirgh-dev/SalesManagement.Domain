@@ -38,5 +38,22 @@ namespace SalesManagement.Persistence.Common
                 throw new IdGenerationCollisionException(
                     "امکان دریافت شناسه در حال حاضر وجود ندارد، لطفاً دوباره تلاش کنید");
         }
+
+        public static async Task AcquireNamedLockAsync(
+            DbConnection connection, DbTransaction transaction, string resource)
+        {
+            var p = new DynamicParameters();
+            p.Add("@Resource", resource);
+            p.Add("@LockMode", "Exclusive");
+            p.Add("@LockOwner", "Transaction");
+            p.Add("@LockTimeout", 10000);
+            p.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
+
+            await connection.ExecuteAsync(
+                "sp_getapplock", p, transaction, commandType: CommandType.StoredProcedure);
+
+            if (p.Get<int>("@Result") < 0)
+                throw new DomainException("سیستم در حال پردازش درخواست مشابه است، لطفاً چند لحظه بعد دوباره تلاش کنید");
+        }
     }
 }

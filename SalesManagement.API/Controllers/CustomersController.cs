@@ -9,6 +9,8 @@ namespace SalesManagement.API.Controllers
     [Route("api/[controller]/[action]")]
     public class CustomersController : ControllerBase
     {
+        private const long MaxRequestBytes = 10L * 1024 * 1024;
+
         private readonly CreateCustomerHandler _createCustomerHandler;
 
         public CustomersController(CreateCustomerHandler createCustomerHandler)
@@ -19,6 +21,8 @@ namespace SalesManagement.API.Controllers
         [HttpPost]
         [AllowAnonymous]
         [Consumes("multipart/form-data")]
+        [RequestSizeLimit(MaxRequestBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxRequestBytes)]
         [ProducesResponseType(typeof(CreateCustomerResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<CreateCustomerResult>> Create(

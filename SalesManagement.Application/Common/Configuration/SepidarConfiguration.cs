@@ -15,6 +15,7 @@ namespace SalesManagement.Application.Common.Configuration
         public int DefaultCurrencyRef { get; set; }
         public int DefaultQuantity { get; set; }
         public int DefaultUserRef { get; set; }
+        public int DefaultCustomerGroupingRef { get; set; }
         public int ItemTypes { get; set; }
         public int ItemSellable { get; set; }
         public int ItemIsActive { get; set; }

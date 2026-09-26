@@ -20,10 +20,11 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
         private const string SqlContext = """
             SELECT
                 COALESCE(
-                    (SELECT TOP (1) u.UserID FROM FMK.[User] AS u WHERE u.UserName LIKE @VisitorCode),
-                    NULLIF(@DefaultUserRef, 0),
-                    53) AS Creator,
-                (SELECT g.GroupingID FROM GNR.Grouping AS g WHERE g.Code = @VisitorCode) AS CustomerGroupingRef;
+                    (SELECT TOP (1) u.UserID FROM FMK.[User] AS u WHERE @VisitorCode IS NOT NULL AND u.UserName LIKE @VisitorCode),
+                    @DefaultUserRef) AS Creator,
+                COALESCE(
+                    (SELECT g.GroupingID FROM GNR.Grouping AS g WHERE @VisitorCode IS NOT NULL AND g.Code = @VisitorCode),
+                    @DefaultCustomerGroupingRef) AS CustomerGroupingRef;
             """;
         private const string SqlDlCode = """
             SELECT MAX(CAST(d.Code AS DECIMAL) + 1) AS Code
@@ -106,6 +107,17 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
             WHERE PartyRef = @PartyRef AND Type = @Type AND IsMain = @IsMain;
             """;
 
+        private const string SqlNationalCodeOwner = """
+            SELECT TOP (1) PartyId FROM GNR.Party
+            WHERE IdentificationCode = @NationalCode AND (@ExcludePartyId IS NULL OR PartyId <> @ExcludePartyId);
+            """;
+
+        private const string SqlMainMobileOwner = """
+            SELECT TOP (1) PartyRef FROM GNR.PartyPhone
+            WHERE Type = 2 AND IsMain = 1 AND Phone = @Mobile
+                AND (@ExcludePartyId IS NULL OR PartyRef <> @ExcludePartyId);
+            """;
+
         private const string SqlUpdateAddress = """
             UPDATE GNR.PartyAddress
             SET Address = @Address, LocationRef = @LocationRef, ZipCode = @ZipCode, Adress_En = @Adress_En,
@@ -133,7 +145,6 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
         public async Task<int> CreateAsync(
             NewCustomer c, string? visitorCode, CancellationToken cancellationToken = default)
         {
-            var defaultUserRef = configProvider.Get().DefaultUserRef;
 
             await using var sepidar = (DbConnection)sepidarFactory.CreateConnection();
             await using var hesab = (DbConnection)hesabFactory.CreateConnection();
@@ -146,23 +157,32 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
             try
             {
                 var now = DateTime.Now;
+                var config = configProvider.Get();
 
                 var ctx = await sepidar.QuerySingleAsync<RegistrationContext>(
-                    SqlContext, new { VisitorCode = visitorCode, DefaultUserRef = defaultUserRef }, tx);
+                    SqlContext,
+                    new
+                    {
+                        VisitorCode = NormalizeVisitorCode(visitorCode),
+                        config.DefaultUserRef,
+                        config.DefaultCustomerGroupingRef,
+                    }, tx);
 
-                var locationRef = c.LocationRef > 0 ? c.LocationRef : configProvider.Get().DefaultLocationRef;
+                var locationRef = c.LocationRef > 0 ? c.LocationRef : config.DefaultLocationRef;
                 var locationExists = await sepidar.ExecuteScalarAsync<int?>(
                     "SELECT 1 FROM GNR.Location WHERE LocationId = @LocationRef;",
                     new { LocationRef = locationRef }, tx);
                 if (locationExists is null)
                     throw new DomainException("شهر/استان انتخاب‌شده معتبر نیست");
 
+                await EnsureCustomerIsUniqueAsync(sepidar, tx, c, excludePartyId: null);
+
                 var dlId = await NextIdAsync(sepidar, tx, "ACC.DL");
                 var partyId = await NextIdAsync(sepidar, tx, "GNR.Party");
                 var addressId = await NextIdAsync(sepidar, tx, "GNR.PartyAddress");
-                var phone1 = await NextIdAsync(sepidar, tx, "GNR.PartyPhone");
+                int? phone1 = c.LandlinePhone.Length > 0 ? await NextIdAsync(sepidar, tx, "GNR.PartyPhone") : null;
                 var phone2 = await NextIdAsync(sepidar, tx, "GNR.PartyPhone");
-                var phone3 = await NextIdAsync(sepidar, tx, "GNR.PartyPhone");
+                int? phone3 = c.MessengerPhone.Length > 0 ? await NextIdAsync(sepidar, tx, "GNR.PartyPhone") : null;
 
                 var dlCode = (await sepidar.ExecuteScalarAsync<int?>(SqlDlCode, new { Type = 2 }, tx) ?? 10000).ToString();
 
@@ -213,9 +233,11 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 pParty.Add("@CustomerGroupingRef", ctx.CustomerGroupingRef);
                 await sepidar.ExecuteAsync(SqlInsertParty, pParty, tx);
 
-                await InsertPhone(sepidar, tx, phone1, partyId, isMain: 0, type: 1, phone: c.LandlinePhone);
+                if (phone1 is not null)
+                    await InsertPhone(sepidar, tx, phone1.Value, partyId, isMain: 0, type: 1, phone: c.LandlinePhone);
                 await InsertPhone(sepidar, tx, phone2, partyId, isMain: 1, type: 2, phone: c.MobilePhone);
-                await InsertPhone(sepidar, tx, phone3, partyId, isMain: 0, type: 2, phone: c.MessengerPhone);
+                if (phone3 is not null)
+                    await InsertPhone(sepidar, tx, phone3.Value, partyId, isMain: 0, type: 2, phone: c.MessengerPhone);
 
                 var pAddr = new DynamicParameters();
                 pAddr.Add("@PartyAddressId", addressId);
@@ -290,7 +312,6 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
             NewCustomer c, string? visitorCode, CancellationToken cancellationToken = default)
         {
             var partyId = c.PartyId ?? throw new DomainException("شناسه مشتری نامعتبر است");
-            var defaultUserRef = configProvider.Get().DefaultUserRef;
 
             await using var sepidar = (DbConnection)sepidarFactory.CreateConnection();
             await using var hesab = (DbConnection)hesabFactory.CreateConnection();
@@ -303,16 +324,25 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
             try
             {
                 var now = DateTime.Now;
+                var config = configProvider.Get();
 
                 var ctx = await sepidar.QuerySingleAsync<RegistrationContext>(
-                    SqlContext, new { VisitorCode = visitorCode, DefaultUserRef = defaultUserRef }, tx);
+                    SqlContext,
+                    new
+                    {
+                        VisitorCode = NormalizeVisitorCode(visitorCode),
+                        config.DefaultUserRef,
+                        config.DefaultCustomerGroupingRef,
+                    }, tx);
 
                 var party = await sepidar.QueryFirstOrDefaultAsync<PartyRow>(
                     SqlSelectPartyForUpdate, new { PartyId = partyId }, tx);
                 if (party is null)
                     throw new DomainException("مشتری پیدا نشد");
 
-                var locationRef = c.LocationRef > 0 ? c.LocationRef : configProvider.Get().DefaultLocationRef;
+                await EnsureCustomerIsUniqueAsync(sepidar, tx, c, excludePartyId: partyId);
+
+                var locationRef = c.LocationRef > 0 ? c.LocationRef : config.DefaultLocationRef;
                 var locationExists = await sepidar.ExecuteScalarAsync<int?>(
                     "SELECT 1 FROM GNR.Location WHERE LocationId = @LocationRef;",
                     new { LocationRef = locationRef }, tx);
@@ -340,9 +370,9 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 pParty.Add("@LastModificationDate", now);
                 await sepidar.ExecuteAsync(SqlUpdateParty, pParty, tx);
 
-                await UpdatePhone(sepidar, tx, partyId, isMain: 0, type: 1, phone: c.LandlinePhone);
-                await UpdatePhone(sepidar, tx, partyId, isMain: 1, type: 2, phone: c.MobilePhone);
-                await UpdatePhone(sepidar, tx, partyId, isMain: 0, type: 2, phone: c.MessengerPhone);
+                await UpsertPhone(sepidar, tx, partyId, isMain: 0, type: 1, phone: c.LandlinePhone);
+                await UpsertPhone(sepidar, tx, partyId, isMain: 1, type: 2, phone: c.MobilePhone);
+                await UpsertPhone(sepidar, tx, partyId, isMain: 0, type: 2, phone: c.MessengerPhone);
 
                 var pAddr = new DynamicParameters();
                 pAddr.Add("@PartyRef", partyId);
@@ -392,7 +422,6 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
                 pExtra.Add("@NewImageBusinessLicenseRef", newLicenseFileId);
                 await hesab.ExecuteAsync(SqlUpdateExtra, pExtra, txHesab);
 
-                // ExtraPartyData.ImageBusinessLicenseRef must point elsewhere before the old file row can be deleted (FK)
                 if (oldLicenseFileId is not null)
                     await hesab.ExecuteAsync(SqlDeleteLicenseFile, new { Id = oldLicenseFileId }, txHesab);
 
@@ -415,7 +444,7 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
             }
         }
 
-        private static Task UpdatePhone(
+        private static Task<int> UpdatePhone(
             DbConnection con, DbTransaction tx, int partyId, int isMain, int type, string phone)
         {
             var p = new DynamicParameters();
@@ -424,6 +453,35 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
             p.Add("@IsMain", isMain);
             p.Add("@Phone", phone);
             return con.ExecuteAsync(SqlUpdatePhone, p, tx);
+        }
+
+        private static async Task UpsertPhone(
+            DbConnection con, DbTransaction tx, int partyId, int isMain, int type, string phone)
+        {
+            if (phone.Length == 0 && isMain == 0) return;
+
+            var affected = await UpdatePhone(con, tx, partyId, isMain, type, phone);
+            if (affected > 0) return;
+
+            var id = await NextIdAsync(con, tx, "GNR.PartyPhone");
+            await InsertPhone(con, tx, id, partyId, isMain, type, phone);
+        }
+
+        private static async Task EnsureCustomerIsUniqueAsync(
+            DbConnection con, DbTransaction tx, NewCustomer c, int? excludePartyId)
+        {
+            await AcquireNamedLockAsync(con, tx, $"Customer:NationalCode:{c.NationalCode}");
+            await AcquireNamedLockAsync(con, tx, $"Customer:Mobile:{c.MobilePhone}");
+
+            var args = new { NationalCode = c.NationalCode, Mobile = c.MobilePhone, ExcludePartyId = excludePartyId };
+
+            var codeOwner = await con.ExecuteScalarAsync<int?>(SqlNationalCodeOwner, args, tx);
+            if (codeOwner is not null)
+                throw new ConflictException("شما از قبل با این کد ملی ثبت‌نام کرده‌اید. لطفاً وارد شوید");
+
+            var mobileOwner = await con.ExecuteScalarAsync<int?>(SqlMainMobileOwner, args, tx);
+            if (mobileOwner is not null)
+                throw new ConflictException("این شماره موبایل قبلاً ثبت شده است");
         }
 
         private static bool IsIdCollision(SqlException ex) =>
@@ -444,10 +502,13 @@ namespace SalesManagement.Persistence.Features.Customers.CreateCustomer
             return con.ExecuteAsync(SqlInsertPhone, p, tx);
         }
 
+        private static string? NormalizeVisitorCode(string? visitorCode) =>
+            string.IsNullOrWhiteSpace(visitorCode) ? null : visitorCode.Trim();
+
         private sealed class RegistrationContext
         {
             public int Creator { get; set; }
-            public int? CustomerGroupingRef { get; set; }
+            public int CustomerGroupingRef { get; set; }
         }
 
         private sealed class PartyRow

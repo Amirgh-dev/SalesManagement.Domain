@@ -50,18 +50,20 @@ namespace SalesManagement.Domain.Features.Customers
             if (string.IsNullOrWhiteSpace(firstName)) throw new DomainException("نام مشتری را وارد کنید");
             if (string.IsNullOrWhiteSpace(lastName)) throw new DomainException("نام خانوادگی مشتری را وارد کنید");
             if (string.IsNullOrWhiteSpace(mobile)) throw new DomainException("شماره موبایل مشتری را وارد کنید");
-            if (string.IsNullOrWhiteSpace(landline)) throw new DomainException("تلفن ثابت مشتری را وارد کنید");
-            if (string.IsNullOrWhiteSpace(messenger)) throw new DomainException("شماره پیام‌رسان مشتری را وارد کنید");
             if (string.IsNullOrWhiteSpace(nationalCode)) throw new DomainException("کد ملی مشتری را وارد کنید");
             if (string.IsNullOrWhiteSpace(address)) throw new DomainException("آدرس مشتری را وارد کنید");
             if (string.IsNullOrWhiteSpace(zipCode)) throw new DomainException("کد پستی مشتری را وارد کنید");
+
+            var normalizedNationalCode = IranianIdentifiers.NormalizeNationalCode(nationalCode);
+            var normalizedMobile = IranianIdentifiers.NormalizeMobile(mobile);
 
             var (lat, lng) = ParseGeolocation(geolocation);
             var normalizedPartyId = partyId is null or <= 0 ? (int?)null : partyId;
 
             return new NewCustomer(
-                normalizedPartyId, firstName.Trim(), lastName.Trim(), nationalCode.Trim(),
-                landline.Trim(), mobile.Trim(), messenger.Trim(),
+                normalizedPartyId, firstName.Trim(), lastName.Trim(), normalizedNationalCode,
+                IranianIdentifiers.NormalizeOptionalPhone(landline), normalizedMobile,
+                IranianIdentifiers.NormalizeOptionalPhone(messenger),
                 address.Trim(), zipCode.Trim(), locationRef, lat, lng, extra);
         }
 

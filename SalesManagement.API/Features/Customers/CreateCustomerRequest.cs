@@ -11,9 +11,9 @@ namespace SalesManagement.API.Features.Customers
         [Required] public string FirstName { get; init; } = "";
         [Required] public string LastName { get; init; } = "";
         [Required] public string NationalCode { get; init; } = "";
-        [Required] public string LandlinePhone { get; init; } = "";
+        public string? LandlinePhone { get; init; }
         [Required] public string MobilePhone { get; init; } = "";
-        [Required] public string MessengerPhone { get; init; } = "";
+        public string? MessengerPhone { get; init; }
         [Required] public string Address { get; init; } = "";
         [Required] public string ZipCode { get; init; } = "";
         [Range(1, int.MaxValue, ErrorMessage = "شهر/استان را انتخاب کنید")]

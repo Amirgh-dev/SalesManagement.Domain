@@ -28,9 +28,11 @@ namespace SalesManagement.Application.Features.Customers.CreateCustomer
             string? savedLicense = null;
             if (cmd.LicenseImageContent is not null)
             {
+                CustomerLicenseFileRules.Validate(cmd.LicenseImageExtension, cmd.LicenseImageContent.Length);
+
                 savedLicense = await fileStorage.SaveAsync(
                     cmd.LicenseImageContent, PartyFolder,
-                    cmd.LicenseImageExtension ?? ".jpg", cancellationToken);
+                    CustomerLicenseFileRules.NormalizeExtension(cmd.LicenseImageExtension), cancellationToken);
                 newCustomer = newCustomer.WithLicenseFile(savedLicense);
             }
 

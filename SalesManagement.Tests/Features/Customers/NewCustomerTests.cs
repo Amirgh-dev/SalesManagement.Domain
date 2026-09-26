@@ -11,7 +11,7 @@ namespace SalesManagement.Tests.Features.Customers
             int? partyId = null,
             string? firstName = "Ali",
             string? lastName = "Rezaei",
-            string? nationalCode = "0012345678",
+            string? nationalCode = "0499370899",
             string? landline = "02100000000",
             string? mobile = "09120000000",
             string? messenger = "09120000000",
@@ -23,8 +23,6 @@ namespace SalesManagement.Tests.Features.Customers
             => NewCustomer.Create(
                 partyId, firstName, lastName, nationalCode, landline, mobile, messenger,
                 address, zipCode, locationRef, geolocation, extra ?? ValidExtra);
-
-        // ---- required fields ------------------------------------------
 
         [Theory]
         [InlineData(null)]
@@ -57,18 +55,18 @@ namespace SalesManagement.Tests.Features.Customers
         [InlineData(null)]
         [InlineData("")]
         [InlineData("   ")]
-        public void Blank_landline_throws(string? value)
+        public void Blank_landline_is_allowed_and_becomes_empty(string? value)
         {
-            Assert.Throws<DomainException>(() => Make(landline: value));
+            Assert.Equal("", Make(landline: value).LandlinePhone);
         }
 
         [Theory]
         [InlineData(null)]
         [InlineData("")]
         [InlineData("   ")]
-        public void Blank_messenger_throws(string? value)
+        public void Blank_messenger_is_allowed_and_becomes_empty(string? value)
         {
-            Assert.Throws<DomainException>(() => Make(messenger: value));
+            Assert.Equal("", Make(messenger: value).MessengerPhone);
         }
 
         [Theory]
@@ -102,21 +100,19 @@ namespace SalesManagement.Tests.Features.Customers
         public void All_text_fields_are_trimmed()
         {
             var c = Make(
-                firstName: " Ali ", lastName: " Rezaei ", nationalCode: " 0012345678 ",
+                firstName: " Ali ", lastName: " Rezaei ", nationalCode: " 0499370899 ",
                 landline: " 02100000000 ", mobile: " 09120000000 ", messenger: " 09120000000 ",
                 address: " Some Address ", zipCode: " 1234567890 ");
 
             Assert.Equal("Ali", c.FirstName);
             Assert.Equal("Rezaei", c.LastName);
-            Assert.Equal("0012345678", c.NationalCode);
+            Assert.Equal("0499370899", c.NationalCode);
             Assert.Equal("02100000000", c.LandlinePhone);
             Assert.Equal("09120000000", c.MobilePhone);
             Assert.Equal("09120000000", c.MessengerPhone);
             Assert.Equal("Some Address", c.Address);
             Assert.Equal("1234567890", c.ZipCode);
         }
-
-        // ---- geolocation ----------------------------------------------
 
         [Theory]
         [InlineData(null)]
@@ -145,8 +141,6 @@ namespace SalesManagement.Tests.Features.Customers
         {
             Assert.Throws<DomainException>(() => Make(geolocation: geo));
         }
-
-        // ---- partyId / IsUpdate -----------------------------------------
 
         [Fact]
         public void PartyId_null_means_create_and_IsUpdate_is_false()
@@ -186,8 +180,6 @@ namespace SalesManagement.Tests.Features.Customers
             var c = Make(partyId: 42).WithLicenseFile("old.jpg").WithLicenseFile("new.jpg");
             Assert.Equal("new.jpg", c.LicenseFileName);
         }
-
-        // ---- files -----------------------------------------------------
 
         [Fact]
         public void Files_default_to_null()
