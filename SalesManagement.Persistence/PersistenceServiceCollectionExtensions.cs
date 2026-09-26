@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using SalesManagement.Domain.Features.Auth.PartyLogin;
 using SalesManagement.Domain.Features.Items;
 using SalesManagement.Persistence.ConnectionFactories;
@@ -34,12 +35,15 @@ namespace SalesManagement.Persistence
             services.AddSingleton<ISepidyarhesabConnectionFactory, SepidyarhesabConnectionFactory>();
             services.AddSingleton<IZanisServicesConnectionFactory, ZanisServicesConnectionFactory>();
             services.AddSingleton<SalesManagement.Domain.Features.Auth.PartyLogin.IRevokedTokenStore, SalesManagement.Persistence.Features.Auth.Logout.RevokedTokenStore>();
+            services.AddHostedService<SalesManagement.Persistence.Features.Auth.Logout.RevokedTokenPurgeService>();
 
             services.AddScoped<IPartyRepository, PartyRepository>();
+            services.AddScoped<SalesManagement.Domain.Features.Users.IUserQueryRepository, SalesManagement.Persistence.Features.Users.QueryUser.UserQueryRepository>();
             services.AddScoped<IItemQueryRepository, ItemQueryRepository>();
             services.AddScoped<IQuotationQueryRepository, QuotationQueryRepository>();
             services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddScoped<ILocationRepository, LocationRepository>();
+            services.AddScoped<SalesManagement.Domain.Features.SaleTypeDiscounts.ISaleTypeDiscountRepository, SalesManagement.Persistence.Features.SaleTypeDiscounts.GetSaleTypeDiscounts.SaleTypeDiscountRepository>();
             services.AddScoped<IInvoiceQueryRepository, InvoiceQueryRepository>();
             services.AddScoped<IPartyProfileRepository, PartyProfileRepository>();
             services.AddScoped<SalesManagement.Domain.Features.PartyProfiles.IProfilePhotoRepository, SalesManagement.Persistence.Features.PartyProfiles.SaveProfilePhoto.ProfilePhotoRepository>();
@@ -51,6 +55,11 @@ namespace SalesManagement.Persistence
             services.AddScoped<IPostNotificationRepository, PostNotificationRepository>();
             services.AddScoped<ICommentRepository, CommentRepository>();
             services.AddScoped<INotificationQueryRepository, NotificationQueryRepository>();
+            services.AddScoped<SalesManagement.Domain.Features.Payments.IPaymentRepository, SalesManagement.Persistence.Features.Payments.PaymentRepository>();
+            services.AddScoped<SalesManagement.Domain.Features.Invoices.IInvoicePayableRepository, SalesManagement.Persistence.Features.Invoices.PayInvoice.InvoicePayableRepository>();
+
+            services.AddScoped<SalesManagement.Domain.Features.Files.IFileSource, SalesManagement.Persistence.Features.Files.PostFileSource>();
+            services.AddScoped<SalesManagement.Domain.Features.Files.IFileSource, SalesManagement.Persistence.Features.Files.PartyFileSource>();
 
             return services;
         }
