@@ -17,6 +17,7 @@ namespace SalesManagement.Persistence.Features.Quotations.QueryQuotations
                 ["quotationId"] = ("q.QuotationId", Kind.Int),
                 ["number"] = ("q.Number", Kind.Int),
                 ["date"] = ("q.Date", Kind.DateTime),
+                ["creationDate"] = ("q.CreationDate", Kind.DateTime),
                 ["expirationDate"] = ("q.ExpirationDate", Kind.DateTime),
                 ["customerPartyRef"] = ("q.CustomerPartyRef", Kind.Int),
                 ["customerName"] = ("q.CustomerRealName", Kind.String),
@@ -237,7 +238,9 @@ namespace SalesManagement.Persistence.Features.Quotations.QueryQuotations
                 return fallback;
 
             if (quotation)
-                return QuotationFields.TryGetValue(query.OrderBy, out var f) ? $"{f.Expr} {dir}" : fallback;
+                return QuotationFields.TryGetValue(query.OrderBy, out var f)
+                    ? WithTieBreakers(query.OrderBy, f.Expr, dir)
+                    : fallback;
 
             if (query.OrderBy.Equals("quotationRef", StringComparison.OrdinalIgnoreCase))
                 return $"qi.QuotationRef {dir}";
@@ -247,6 +250,19 @@ namespace SalesManagement.Persistence.Features.Quotations.QueryQuotations
                 return $"{a}.{it.Column} {dir}";
             }
             return fallback;
+        }
+
+        private static string WithTieBreakers(string field, string expr, string dir)
+        {
+            var parts = new List<string> { $"{expr} {dir}" };
+
+            if (!field.Equals("creationDate", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"q.CreationDate {dir}");
+
+            if (!field.Equals("quotationId", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"q.QuotationId {dir}");
+
+            return string.Join(", ", parts);
         }
 
         private static string ItemExistsClause(string itemWhereExists) =>

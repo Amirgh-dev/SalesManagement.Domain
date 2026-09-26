@@ -18,6 +18,7 @@ namespace SalesManagement.Persistence.Features.Invoices.QueryInvoices
                 ["invoiceId"] = ("i.InvoiceId", Kind.Int),
                 ["number"] = ("i.Number", Kind.Int),
                 ["date"] = ("i.Date", Kind.DateTime),
+                ["creationDate"] = ("i.CreationDate", Kind.DateTime),
                 ["customerPartyRef"] = ("i.CustomerPartyRef", Kind.Int),
                 ["customerName"] = ("i.CustomerRealName", Kind.String),
                 ["saleTypeRef"] = ("i.SaleTypeRef", Kind.Int),
@@ -237,7 +238,9 @@ namespace SalesManagement.Persistence.Features.Invoices.QueryInvoices
                 return fallback;
 
             if (invoice)
-                return InvoiceFields.TryGetValue(query.OrderBy, out var f) ? $"{f.Expr} {dir}" : fallback;
+                return InvoiceFields.TryGetValue(query.OrderBy, out var f)
+                    ? WithTieBreakers(query.OrderBy, f.Expr, dir)
+                    : fallback;
 
             if (query.OrderBy.Equals("invoiceRef", StringComparison.OrdinalIgnoreCase))
                 return $"ii.InvoiceRef {dir}";
@@ -247,6 +250,19 @@ namespace SalesManagement.Persistence.Features.Invoices.QueryInvoices
                 return $"{a}.{it.Column} {dir}";
             }
             return fallback;
+        }
+
+        private static string WithTieBreakers(string field, string expr, string dir)
+        {
+            var parts = new List<string> { $"{expr} {dir}" };
+
+            if (!field.Equals("creationDate", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"i.CreationDate {dir}");
+
+            if (!field.Equals("invoiceId", StringComparison.OrdinalIgnoreCase))
+                parts.Add($"i.InvoiceId {dir}");
+
+            return string.Join(", ", parts);
         }
 
         private static string ItemExistsClause(string itemWhereExists) =>

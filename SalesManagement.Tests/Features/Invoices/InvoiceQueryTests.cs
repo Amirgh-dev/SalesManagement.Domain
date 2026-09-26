@@ -18,8 +18,6 @@ namespace SalesManagement.Tests.Features.Invoices
             int? pageSize = null)
             => InvoiceQuery.Create(scope, fields, filters, search, orderBy, descending, skip, take, page, pageSize);
 
-        // ---- scope ---------------------------------------------------------
-
         [Theory]
         [InlineData(null, InvoiceScope.Both)]
         [InlineData("", InvoiceScope.Both)]
@@ -34,8 +32,6 @@ namespace SalesManagement.Tests.Features.Invoices
         {
             Assert.Equal(expected, Make(scope: scope).Scope);
         }
-
-        // ---- fields -------------------------------------------------------
 
         [Fact]
         public void Fields_null_gives_empty_list()
@@ -56,8 +52,6 @@ namespace SalesManagement.Tests.Features.Invoices
             Assert.Equal(new[] { "number", "price" }, Make(fields: "number,string,price").Fields);
             Assert.Empty(Make(fields: "string").Fields);
         }
-
-        // ---- filters ----------------------------------------------------
 
         [Fact]
         public void Filters_null_gives_empty_list()
@@ -128,8 +122,6 @@ namespace SalesManagement.Tests.Features.Invoices
             Assert.Contains(q.Filters, x => x.Field == "customerName" && x.Op == FilterOp.Contains);
         }
 
-        // ---- search ---------------------------------------------------
-
         [Theory]
         [InlineData(null)]
         [InlineData("")]
@@ -174,8 +166,6 @@ namespace SalesManagement.Tests.Features.Invoices
             Assert.Empty(q.Search!.Fields);
         }
 
-        // ---- orderBy / descending -----------------------------------
-
         [Theory]
         [InlineData(null)]
         [InlineData("")]
@@ -197,8 +187,6 @@ namespace SalesManagement.Tests.Features.Invoices
             Assert.True(Make(descending: true).Descending);
             Assert.False(Make(descending: false).Descending);
         }
-
-        // ---- pagination -------------------------------------------
 
         [Fact]
         public void Default_paging_is_skip_0_take_100()

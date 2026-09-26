@@ -127,7 +127,7 @@ CREATE TABLE [dbo].[PostProfile](
 	[Post] [nvarchar](500) COLLATE Arabic_CI_AI NOT NULL,
 	[PostPhotoRef] [uniqueidentifier] NULL,
 	[LikePost] [bigint] NULL,
-	[CreationDate] [date] NULL,
+	[CreationDate] [datetime] NULL,
 	[Type] [nvarchar](50) COLLATE Arabic_CI_AI NULL,
  CONSTRAINT [PK_PostProfile] PRIMARY KEY CLUSTERED 
 (
@@ -166,7 +166,7 @@ CREATE TABLE [dbo].[PartyComment](
 	[PostRef] [uniqueidentifier] NOT NULL,
 	[ProfileRef] [uniqueidentifier] NOT NULL,
 	[Comment] [nvarchar](500) COLLATE Arabic_CI_AI NOT NULL,
-	[CreationDate] [date] NULL,
+	[CreationDate] [datetime] NULL,
  CONSTRAINT [PK_PartyComment] PRIMARY KEY CLUSTERED 
 (
 	[Id] ASC
