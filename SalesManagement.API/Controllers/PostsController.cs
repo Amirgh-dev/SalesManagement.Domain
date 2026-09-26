@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using SalesManagement.API.Features.Posts;
 using SalesManagement.Application.Features.Posts.CreateComment;
 using SalesManagement.Application.Features.Posts.CreatePost;
+using SalesManagement.Application.Features.Posts.DeleteComment;
+using SalesManagement.Application.Features.Posts.DeletePost;
 
 namespace SalesManagement.API.Controllers
 {
@@ -16,21 +18,27 @@ namespace SalesManagement.API.Controllers
     {
         private readonly CreatePostHandler _createPostHandler;
         private readonly CreateCommentHandler _createCommentHandler;
+        private readonly DeletePostHandler _deletePostHandler;
+        private readonly DeleteCommentHandler _deleteCommentHandler;
 
         public PostsController(
             CreatePostHandler createPostHandler,
-            CreateCommentHandler createCommentHandler)
+            CreateCommentHandler createCommentHandler,
+            DeletePostHandler deletePostHandler,
+            DeleteCommentHandler deleteCommentHandler)
         {
             _createPostHandler = createPostHandler;
             _createCommentHandler = createCommentHandler;
+            _deletePostHandler = deletePostHandler;
+            _deleteCommentHandler = deleteCommentHandler;
         }
 
         [HttpPost("[action]")]
         [Consumes("multipart/form-data")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(CreatePostResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Create(
+        public async Task<ActionResult<CreatePostResult>> Create(
             [FromForm] CreatePostRequest request, CancellationToken cancellationToken)
         {
             var images = request.Images ?? [];
@@ -42,17 +50,30 @@ namespace SalesManagement.API.Controllers
                     .Zip(streams, (file, stream) => (stream, (string?)Path.GetExtension(file.FileName)))
                     .ToList();
 
-                await _createPostHandler.Handle(
+                var result = await _createPostHandler.Handle(
                     new CreatePostCommand(
                         request.Id, request.ProfileRef.GetValueOrDefault(), request.Title, request.Post,
                         request.Type, imageInputs),
                     cancellationToken);
+
+                return Ok(result);
             }
             finally
             {
                 foreach (var stream in streams)
                     await stream.DisposeAsync();
             }
+        }
+
+        [HttpPost("delete")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Delete(
+            [FromBody] DeletePostRequest request, CancellationToken cancellationToken)
+        {
+            await _deletePostHandler.Handle(
+                new DeletePostCommand(request.Id, request.ProfileRef), cancellationToken);
 
             return NoContent();
         }
@@ -71,6 +92,19 @@ namespace SalesManagement.API.Controllers
                     request.ProfileRef.GetValueOrDefault(),
                     request.Comment),
                 cancellationToken);
+
+            return NoContent();
+        }
+
+        [HttpPost("comments/delete")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> DeleteComment(
+            [FromBody] DeleteCommentRequest request, CancellationToken cancellationToken)
+        {
+            await _deleteCommentHandler.Handle(
+                new DeleteCommentCommand(request.Id, request.ProfileRef), cancellationToken);
 
             return NoContent();
         }

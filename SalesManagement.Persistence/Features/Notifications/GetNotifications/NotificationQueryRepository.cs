@@ -12,13 +12,15 @@ namespace SalesManagement.Persistence.Features.Notifications.GetNotifications
     {
         private const int MaxAgeHours = 48;
 
-        private const string SqlResolveProvince = """
+        private const string SqlResolvePartyContext = """
             SELECT TOP (1)
-                CASE WHEN l.Type = '2' THEN l.LocationId ELSE pr.LocationId END AS ProvinceId
-            FROM [Sepidar02].[GNR].[PartyAddress] AS a
-                JOIN [Sepidar02].[GNR].[Location] AS l ON l.LocationId = a.LocationRef
+                p.IsBroker AS [IsBroker],
+                CASE WHEN l.Type = '2' THEN l.LocationId ELSE pr.LocationId END AS [ProvinceId]
+            FROM [Sepidar02].[GNR].[Party] AS p
+                LEFT JOIN [Sepidar02].[GNR].[PartyAddress] AS a ON a.PartyRef = p.PartyId AND a.IsMain = 1
+                LEFT JOIN [Sepidar02].[GNR].[Location] AS l ON l.LocationId = a.LocationRef
                 LEFT JOIN [Sepidar02].[GNR].[Location] AS pr ON pr.LocationId = l.Parent AND pr.Type = 2
-            WHERE a.PartyRef = @PartyRef AND a.IsMain = 1;
+            WHERE p.PartyId = @PartyRef;
             """;
 
         private const string SqlWhere = """
@@ -26,7 +28,8 @@ namespace SalesManagement.Persistence.Features.Notifications.GetNotifications
                 AND (
                     (n.Code <> @BroadcastCode AND n.PartyRef = @PartyRef)
                     OR
-                    (n.Code = @BroadcastCode AND n.PartyRef <> @PartyRef AND @ProvinceId IS NOT NULL
+                    (n.Code = @BroadcastCode AND n.PartyRef <> @PartyRef
+                        AND @IsBroker = 0 AND @ProvinceId IS NOT NULL
                         AND EXISTS (
                             SELECT 1
                             FROM [Sepidar02].[GNR].[PartyAddress] AS pa
@@ -45,13 +48,15 @@ namespace SalesManagement.Persistence.Features.Notifications.GetNotifications
             await using var connection = (DbConnection)connectionFactory.CreateConnection();
             await connection.OpenAsync(cancellationToken);
 
-            var provinceId = await connection.ExecuteScalarAsync<int?>(
-                new CommandDefinition(SqlResolveProvince, new { PartyRef = partyRef }, cancellationToken: cancellationToken));
+            var context = await connection.QueryFirstOrDefaultAsync<PartyContextRow>(
+                new CommandDefinition(
+                    SqlResolvePartyContext, new { PartyRef = partyRef }, cancellationToken: cancellationToken));
 
             var p = new DynamicParameters();
             p.Add("@PartyRef", partyRef);
             p.Add("@BroadcastCode", PostNotificationRepository.BroadcastCode);
-            p.Add("@ProvinceId", provinceId);
+            p.Add("@ProvinceId", context?.ProvinceId);
+            p.Add("@IsBroker", context?.IsBroker ?? false);
             p.Add("@CutoffDate", DateTime.Now.AddHours(-MaxAgeHours));
             p.Add("@Skip", skip);
             p.Add("@Take", take);
@@ -72,6 +77,12 @@ namespace SalesManagement.Persistence.Features.Notifications.GetNotifications
 
             var (total, rows) = await ReadCountAndRowsAsync(connection, sql, p, cancellationToken);
             return (total, rows);
+        }
+
+        private sealed class PartyContextRow
+        {
+            public bool IsBroker { get; set; }
+            public int? ProvinceId { get; set; }
         }
     }
 }

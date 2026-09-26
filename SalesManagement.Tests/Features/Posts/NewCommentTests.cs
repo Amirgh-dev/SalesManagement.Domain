@@ -15,8 +15,6 @@ namespace SalesManagement.Tests.Features.Posts
             string? text = "Nice post")
             => NewComment.Create(id, postRef ?? ValidPostRef, profileRef ?? ValidProfileRef, text);
 
-        // ---- validation ---------------------------------------------
-
         [Fact]
         public void PostRef_empty_throws()
         {
@@ -43,8 +41,6 @@ namespace SalesManagement.Tests.Features.Posts
         {
             Assert.Equal("Nice post", Make(text: "  Nice post  ").Text);
         }
-
-        // ---- id / IsUpdate --------------------------------------------
 
         [Fact]
         public void Id_null_means_create_and_IsUpdate_is_false()

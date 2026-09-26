@@ -29,6 +29,10 @@ namespace SalesManagement.Persistence.Features.Posts.CreateComment
             UPDATE dbo.PartyComment SET Comment = @Comment WHERE Id = @Id AND ProfileRef = @ProfileRef;
             """;
 
+        private const string SqlDeleteComment = """
+            DELETE FROM dbo.PartyComment WHERE Id = @Id AND ProfileRef = @ProfileRef;
+            """;
+
         public async Task CreateAsync(NewComment comment, CancellationToken cancellationToken = default)
         {
             await using var connection = (DbConnection)connectionFactory.CreateConnection();
@@ -78,6 +82,19 @@ namespace SalesManagement.Persistence.Features.Posts.CreateComment
                 await tx.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+        public async Task DeleteAsync(
+            Guid commentId, Guid profileRef, CancellationToken cancellationToken = default)
+        {
+            await using var connection = (DbConnection)connectionFactory.CreateConnection();
+            await connection.OpenAsync(cancellationToken);
+
+            var affected = await connection.ExecuteAsync(new CommandDefinition(
+                SqlDeleteComment, new { Id = commentId, ProfileRef = profileRef },
+                cancellationToken: cancellationToken));
+            if (affected == 0)
+                throw new DomainException("کامنت پیدا نشد");
         }
 
         private sealed class ProfileGuardRow

@@ -41,11 +41,23 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
             SELECT Id, FileName, IsMain FROM dbo.PostFile WHERE PostRef = @PostRef;
             """;
 
+        private const string SqlSelectPhotoRefs = """
+            SELECT Id, Path FROM dbo.PostFile WHERE PostRef = @PostRef ORDER BY IsMain DESC, Id;
+            """;
+
         private const string SqlDeletePostFiles = """
             DELETE FROM dbo.PostFile WHERE PostRef = @PostRef;
             """;
 
-        public async Task<IReadOnlyList<string>> CreateAsync(
+        private const string SqlDeleteComments = """
+            DELETE FROM dbo.PartyComment WHERE PostRef = @PostRef;
+            """;
+
+        private const string SqlDeletePost = """
+            DELETE FROM dbo.PostProfile WHERE Id = @Id;
+            """;
+
+        public async Task<PostSaveOutcome> CreateAsync(
             NewPost post, CancellationToken cancellationToken = default)
         {
             await using var connection = (DbConnection)connectionFactory.CreateConnection();
@@ -125,8 +137,45 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
                     await connection.ExecuteAsync(SqlInsertPostFile, pFile, tx);
                 }
 
+                var photos = (await connection.QueryAsync<PhotoRefRow>(
+                        SqlSelectPhotoRefs, new { PostRef = postId }, tx))
+                    .Select(r => new PostPhotoRef(r.Id, r.Path))
+                    .ToList();
+
                 await tx.CommitAsync(cancellationToken);
-                return deletedFileNames;
+                return new PostSaveOutcome(postId, deletedFileNames, photos);
+            }
+            catch
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+        public async Task<IReadOnlyList<string>> DeleteAsync(
+            Guid postId, Guid profileRef, CancellationToken cancellationToken = default)
+        {
+            await using var connection = (DbConnection)connectionFactory.CreateConnection();
+            await connection.OpenAsync(cancellationToken);
+            await using var tx = await connection.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                var existing = await connection.QueryFirstOrDefaultAsync<Guid?>(
+                    SqlSelectOwnedPost, new { Id = postId, ProfileRef = profileRef }, tx);
+                if (existing is null)
+                    throw new DomainException("پست پیدا نشد");
+
+                var fileNames = (await connection.QueryAsync<string>(
+                    "SELECT FileName FROM dbo.PostFile WHERE PostRef = @PostRef;",
+                    new { PostRef = postId }, tx)).ToList();
+
+                await connection.ExecuteAsync(SqlDeleteComments, new { PostRef = postId }, tx);
+                await connection.ExecuteAsync(SqlDeletePostFiles, new { PostRef = postId }, tx);
+                await connection.ExecuteAsync(SqlDeletePost, new { Id = postId }, tx);
+
+                await tx.CommitAsync(cancellationToken);
+                return fileNames;
             }
             catch
             {
@@ -138,6 +187,12 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
         private sealed class ProfileGuardRow
         {
             public bool? IsBlackList { get; set; }
+        }
+
+        private sealed class PhotoRefRow
+        {
+            public Guid Id { get; set; }
+            public string Path { get; set; } = "";
         }
 
         private sealed class ExistingPhotoRow

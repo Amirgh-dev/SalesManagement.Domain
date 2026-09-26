@@ -39,7 +39,6 @@ namespace SalesManagement.Persistence.Features.Posts.CreatePost
             var profile = await zanisServices.QueryFirstOrDefaultAsync<ProfileRow>(
                 new CommandDefinition(SqlSelectProfile, new { ProfileRef = profileRef }, cancellationToken: cancellationToken));
 
-            // no address on file for this profile -> no province to broadcast into, nothing to write
             if (profile?.LocationRef is null)
                 return;
 

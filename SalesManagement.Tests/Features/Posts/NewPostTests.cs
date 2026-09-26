@@ -16,8 +16,6 @@ namespace SalesManagement.Tests.Features.Posts
             TypePost? type = null)
             => NewPost.Create(id, profileRef ?? ValidProfileRef, title, body, type);
 
-        // ---- validation ---------------------------------------------
-
         [Fact]
         public void ProfileRef_empty_throws()
         {
@@ -50,8 +48,6 @@ namespace SalesManagement.Tests.Features.Posts
             Assert.Equal("World", post.Body);
         }
 
-        // ---- id / IsUpdate --------------------------------------------
-
         [Fact]
         public void Id_null_means_create_and_IsUpdate_is_false()
         {
@@ -77,8 +73,6 @@ namespace SalesManagement.Tests.Features.Posts
             Assert.True(post.IsUpdate);
         }
 
-        // ---- type -------------------------------------------------------
-
         [Fact]
         public void Type_defaults_to_post_when_not_given()
         {
@@ -94,8 +88,6 @@ namespace SalesManagement.Tests.Features.Posts
         {
             Assert.Equal(type, Make(type: type).Type);
         }
-
-        // ---- photos -----------------------------------------------------
 
         [Fact]
         public void PhotoFileNames_default_to_empty()

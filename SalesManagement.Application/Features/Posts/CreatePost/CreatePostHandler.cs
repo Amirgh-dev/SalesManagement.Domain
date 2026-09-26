@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using SalesManagement.Application.Common.Interfaces;
+using SalesManagement.Domain.Common;
 using SalesManagement.Domain.Enums;
+using SalesManagement.Domain.Features.PartyProfiles;
 using SalesManagement.Domain.Features.Posts;
 
 namespace SalesManagement.Application.Features.Posts.CreatePost
@@ -9,15 +11,19 @@ namespace SalesManagement.Application.Features.Posts.CreatePost
         IPostRepository postRepository,
         IPostNotificationRepository postNotificationRepository,
         IFileStorage fileStorage,
+        IMediaUrlBuilder mediaUrlBuilder,
         ILogger<CreatePostHandler> logger)
     {
         private const string PostFileFolder = "PostFile";
 
-        public async Task Handle(CreatePostCommand cmd, CancellationToken cancellationToken = default)
+        public async Task<CreatePostResult> Handle(CreatePostCommand cmd, CancellationToken cancellationToken = default)
         {
             var newPost = NewPost.Create(cmd.Id, cmd.ProfileRef, cmd.Title, cmd.Post, cmd.Type);
 
             var savedFileNames = new List<string>();
+            foreach (var (content, extension) in cmd.Images)
+                ProfilePhotoRules.Validate(extension, content.Length);
+
             foreach (var (content, extension) in cmd.Images)
             {
                 var savedFileName = await fileStorage.SaveAsync(
@@ -28,9 +34,9 @@ namespace SalesManagement.Application.Features.Posts.CreatePost
 
             try
             {
-                var removedFileNames = await postRepository.CreateAsync(newPost, cancellationToken);
+                var outcome = await postRepository.CreateAsync(newPost, cancellationToken);
 
-                foreach (var fileName in removedFileNames)
+                foreach (var fileName in outcome.DeletedFileNames)
                     await fileStorage.DeleteAsync(PostFileFolder, fileName, CancellationToken.None);
 
                 logger.LogInformation(
@@ -50,6 +56,10 @@ namespace SalesManagement.Application.Features.Posts.CreatePost
                             "ارسال نوتیفیکیشن پست فوری برای پروفایل {ProfileRef} ناموفق بود", newPost.ProfileRef);
                     }
                 }
+
+                return new CreatePostResult(
+                    outcome.PostId, newPost.IsUpdate,
+                    outcome.Photos.Select(p => new PostPhotoResult(p.Id, mediaUrlBuilder.Build(p.Path))).ToList());
             }
             catch
             {
